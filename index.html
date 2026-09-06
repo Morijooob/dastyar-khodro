@@ -10,15 +10,17 @@
 <body>
   <header><div class="container"><strong>🚗 دستیار خودرو</strong><a href="#about">درباره ما</a></div></header>
   <main class="container">
-    <section class="hero"><h1>ماشین مناسب تو کدومه؟ 🤔</h1><p>بودجه و نیازت رو بگو تا بهترین گزینه‌ها رو برات پیدا کنیم.</p></section>
+    <section class="hero"><h1>ماشین مناسب تو کدومه؟ 🤔</h1><p>بودجه و نیازت رو بگو تا گزینه‌هایی که واقعاً به شرایطت می‌خورن پیدا کنیم.</p></section>
     <form class="form-card" id="car-form">
-      <div class="field"><label for="budget">💰 بودجه</label><div class="budget-wrap"><input id="budget" type="number" min="1" placeholder="مثلاً ۷۰۰" required><span>میلیون تومان</span></div></div>
+      <div class="field"><label for="budget">💰 بودجه</label><div class="budget-wrap"><input id="budget" type="number" min="1" placeholder="مثلاً ۲۰۰۰" required><span>میلیون تومان</span></div></div>
       <fieldset><legend class="legend">⚙️ گیربکس</legend><div class="choices"><label class="choice"><input type="radio" name="gearbox" value="auto"><span>اتومات</span></label><label class="choice"><input type="radio" name="gearbox" value="manual"><span>دنده‌ای</span></label><label class="choice"><input type="radio" name="gearbox" value="any" checked><span>فرقی نداره</span></label></div></fieldset>
       <fieldset><legend class="legend">👨‍👩‍👧‍👦 نوع استفاده</legend><div class="choices"><label class="choice"><input type="radio" name="use" value="city" checked><span>شهری</span></label><label class="choice"><input type="radio" name="use" value="family"><span>خانوادگی</span></label><label class="choice"><input type="radio" name="use" value="travel"><span>سفر</span></label></div></fieldset>
       <fieldset><legend class="legend">⭐ مهم‌ترین اولویت</legend><div class="choices"><label class="choice"><input type="radio" name="priority" value="cheap" checked><span>کم‌خرج</span></label><label class="choice"><input type="radio" name="priority" value="fuel"><span>کم‌مصرف</span></label><label class="choice"><input type="radio" name="priority" value="resale"><span>فروش آسان</span></label></div></fieldset>
+      <fieldset><legend class="legend">📅 ترجیح سال خودرو</legend><div class="choices"><label class="choice"><input type="radio" name="year" value="new" checked><span>جدیدتر</span></label><label class="choice"><input type="radio" name="year" value="balanced"><span>متعادل</span></label><label class="choice"><input type="radio" name="year" value="old"><span>ارزان‌تر</span></label></div></fieldset>
+      <fieldset><legend class="legend">👨‍👩‍👧 تعداد سرنشین معمول</legend><div class="choices"><label class="choice"><input type="radio" name="passengers" value="2"><span>۱ تا ۲ نفر</span></label><label class="choice"><input type="radio" name="passengers" value="4" checked><span>۳ تا ۴ نفر</span></label><label class="choice"><input type="radio" name="passengers" value="5"><span>۵ نفر</span></label></div></fieldset>
       <button class="cta" type="submit">🚀 ماشین مناسب من را پیدا کن</button>
     </form>
-    <section class="how" id="about"><h2>چطور کار می‌کنه؟</h2><div class="steps"><div class="step"><b>۱️⃣</b><span>نیازت رو بگو</span></div><div class="step"><b>۲️⃣</b><span>گزینه‌ها رو بررسی می‌کنیم</span></div><div class="step"><b>۳️⃣</b><span>بهترین‌ها رو پیشنهاد می‌دیم</span></div></div></section>
+    <section class="how" id="about"><h2>چطور کار می‌کنه؟</h2><div class="steps"><div class="step"><b>۱️⃣</b><span>نیازت رو می‌گیریم</span></div><div class="step"><b>۲️⃣</b><span>گزینه‌ها رو امتیازدهی می‌کنیم</span></div><div class="step"><b>۳️⃣</b><span>دلیل پیشنهاد و نقطه‌ضعف رو می‌گیم</span></div></div></section>
   </main>
   <script src="app.js"></script>
 </body>
