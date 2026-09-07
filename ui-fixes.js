@@ -14,6 +14,10 @@
     });
   }
 
+  function openScoreDetails() {
+    document.querySelectorAll('details.score-details').forEach(d => { d.open = true; });
+  }
+
   function addSellerPromo() {
     const main = document.querySelector('main');
     if (!main || document.getElementById('seller-promo')) return;
@@ -34,6 +38,7 @@
 
   function fixAll() {
     removeOldMarketplaceLinks();
+    openScoreDetails();
     addSellerPromo();
   }
 
