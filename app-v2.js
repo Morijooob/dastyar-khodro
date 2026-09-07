@@ -91,8 +91,8 @@
       const source = c.bestListing.source || 'منبع';
       return `<div class="listing-summary"><div><strong>🟢 آگهی تأییدشده</strong><span>${c.bestListing.city} · ${source} · ${fa(c.bestListing.price)} میلیون تومان</span></div><div class="marketplace-actions"><a class="listing-link" href="${c.bestListing.url}" target="_blank" rel="noopener noreferrer">مشاهده آگهی در ${source}</a></div><small>آخرین مشاهده: ${c.bestListing.observedAt ? faText(c.bestListing.observedAt) : 'نامشخص'} · اختلاف با بودجه: ${gap}</small></div>`;
     }
-    const sheypoor = 'https://www.sheypoor.com/';
-    return `<div class="listing-summary"><div><strong>🛒 جستجوی بازار</strong><span>${cityNames[c.listingCity] || c.listingCity} · هنوز آگهی زنده تأییدشده نداریم</span></div><div class="marketplace-actions"><a class="listing-link" href="${c.divarUrl}" target="_blank" rel="noopener noreferrer">دیوار</a><a class="listing-link" href="${sheypoor}" target="_blank" rel="noopener noreferrer">شیپور</a></div><small>این‌ها مسیر جستجوی بازار هستند، نه آگهی مشخص. اطلاعات ساختگی وارد سیستم نمی‌کنیم.</small></div>`;
+    const bama = 'https://bama.ir/car';
+    return `<div class="listing-summary"><div><strong>🛒 جستجوی بازار</strong><span>${cityNames[c.listingCity] || c.listingCity} · هنوز آگهی زنده تأییدشده نداریم</span></div><div class="marketplace-actions"><a class="listing-link" href="${c.divarUrl}" target="_blank" rel="noopener noreferrer">دیوار</a><a class="listing-link" href="${bama}" target="_blank" rel="noopener noreferrer">باما</a></div><small>این‌ها مسیر جستجوی بازار هستند، نه آگهی مشخص. اطلاعات ساختگی وارد سیستم نمی‌کنیم.</small></div>`;
   }
 
   function render(results,p){
