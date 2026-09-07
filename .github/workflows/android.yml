@@ -47,7 +47,7 @@ jobs:
         run: |
           rm -rf www
           mkdir -p www/data
-          cp index.html style.css app-v2.js version.js update-check.js www/
+          cp index.html style.css app-v2.js version.js update-check.js ui-fixes.js www/
           cp data/*.js www/data/
 
       - name: Add Android platform
