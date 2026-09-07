@@ -61,14 +61,14 @@
     const section = document.createElement('section');
     section.id = 'results';
     section.className = 'results';
-    section.innerHTML = `<div class="results-head"><div><span class="eyebrow">تحلیل دستیار خودرو</span><h2>🚗 پیشنهادهای مناسب تو</h2></div><span class="experimental">نسخه 1.1.4</span></div>` + results.map((c,i) => `<article class="result-card ${i === 0 ? 'top-pick' : ''}">
+    section.innerHTML = `<div class="results-head"><div><span class="eyebrow">تحلیل دستیار خودرو</span><h2>🚗 پیشنهادهای مناسب تو</h2></div><span class="experimental">نسخه 1.1.5</span></div>` + results.map((c,i) => `<article class="result-card ${i === 0 ? 'top-pick' : ''}">
       <div class="result-top"><div><span class="rank">${i === 0 ? '🏆 پیشنهاد اول' : `گزینه ${i+1}`}</span><h3>${c.name || c.title || 'خودرو'}</h3></div><div class="score"><strong>${c.match}</strong><small>امتیاز</small></div></div>
       <div class="price">💰 ${fa(c.price)} میلیون تومان</div>
       <div class="price-meta">بودجه شما: ${fa(p.budget)} میلیون تومان · فقط خودروهای داخل بودجه</div>
       <div class="reason-title">چرا این گزینه؟</div><ul>${c.reasons.map(x => `<li>${x}</li>`).join('')}</ul>
-      ${c.bestListing ? `<div class="listing-summary"><strong>🔎 آگهی نمونه: ${fa(c.bestListing.price)} میلیون</strong><span>${c.bestListing.city || 'شهر نامشخص'}${c.bestListing.year ? ' · مدل '+c.bestListing.year : ''}${c.bestListing.mileage ? ' · '+fa(c.bestListing.mileage)+' کیلومتر' : ''}</span></div>` : ''}
+      ${c.bestListing ? `<div class="listing-summary"><strong>🔎 آگهی در ${c.bestListing.source || 'بازار'} </strong><span>${c.bestListing.city || 'شهر نامشخص'}</span>${c.bestListing.url && c.bestListing.url !== '#' ? `<a class="listing-link" href="${c.bestListing.url}" target="_blank" rel="noopener noreferrer">🛒 مشاهده آگهی‌ها و خرید</a>` : ''}</div>` : ''}
       ${i === 0 ? '<span class="best-badge">⭐ بهترین تطبیق با انتخاب‌های شما</span>' : ''}
-    </article>`).join('') + `<div class="data-note">نسخه برنامه: 1.1.4 · بودجه: ${fa(p.budget)} میلیون · ${p.gearbox === 'any' ? 'هر گیربکس' : p.gearbox === 'auto' ? 'اتومات' : 'دنده‌ای'} · ${p.use === 'city' ? 'شهری' : p.use === 'family' ? 'خانوادگی' : 'سفر'} · اولویت: ${p.priority === 'cheap' ? 'هزینه نگهداری' : p.priority === 'fuel' ? 'مصرف سوخت' : 'فروش مجدد'} · ${p.passengers} سرنشین · ${p.year}</div>`;
+    </article>`).join('') + `<div class="data-note">نسخه برنامه: 1.1.5 · بودجه: ${fa(p.budget)} میلیون · ${p.gearbox === 'any' ? 'هر گیربکس' : p.gearbox === 'auto' ? 'اتومات' : 'دنده‌ای'} · ${p.use === 'city' ? 'شهری' : p.use === 'family' ? 'خانوادگی' : 'سفر'} · اولویت: ${p.priority === 'cheap' ? 'هزینه نگهداری' : p.priority === 'fuel' ? 'مصرف سوخت' : 'فروش مجدد'} · ${p.passengers} سرنشین · ${p.year}</div>`;
     document.querySelector('main').appendChild(section);
     section.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
@@ -78,7 +78,7 @@
     const section = document.createElement('section');
     section.id = 'results';
     section.className = 'results';
-    section.innerHTML = `<div class="results-head"><div><span class="eyebrow">نتیجه تحلیل</span><h2>😕 خودرویی داخل بودجه پیدا نشد</h2></div><span class="experimental">نسخه 1.1.4</span></div><article class="result-card top-pick"><div class="reason-title">بودجه انتخابی شما: ${fa(p.budget)} میلیون تومان</div><p style="color:var(--muted);margin:8px 0 0">در اطلاعات فعلی، ارزان‌ترین خودروی قابل پیشنهاد حدود <strong>${fa(minPrice)} میلیون تومان</strong> است. خودروهای بالاتر از بودجه نمایش داده نمی‌شوند.</p><div class="data-note">نسخه برنامه: 1.1.4 · فیلتر بودجه فعال است · هیچ خودروی بالاتر از بودجه اجازه نمایش ندارد.</div></article>`;
+    section.innerHTML = `<div class="results-head"><div><span class="eyebrow">نتیجه تحلیل</span><h2>😕 خودرویی داخل بودجه پیدا نشد</h2></div><span class="experimental">نسخه 1.1.5</span></div><article class="result-card top-pick"><div class="reason-title">بودجه انتخابی شما: ${fa(p.budget)} میلیون تومان</div><p style="color:var(--muted);margin:8px 0 0">در اطلاعات فعلی، ارزان‌ترین خودروی قابل پیشنهاد حدود <strong>${fa(minPrice)} میلیون تومان</strong> است. خودروهای بالاتر از بودجه نمایش داده نمی‌شوند.</p><div class="data-note">نسخه برنامه: 1.1.5 · فیلتر بودجه فعال است · هیچ خودروی بالاتر از بودجه اجازه نمایش ندارد.</div></article>`;
     document.querySelector('main').appendChild(section);
     section.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
@@ -127,7 +127,7 @@
         const finalResults = affordable
           .filter(c => c.price <= p.budget)
           .sort((a,b) => b.match - a.match)
-          .slice(0,3);
+          .slice(0,10);
 
         if (!finalResults.length) {
           const prices = scored.map(c => c.price).filter(price => Number.isFinite(price) && price > 0);
