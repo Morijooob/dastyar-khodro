@@ -2,9 +2,9 @@
   'use strict';
 
   // Unified listing data layer.
-  // IMPORTANT: only records with verificationStatus='verified' and isLive=true
-  // are treated as real comparable listings. Search pages are never promoted to listings.
+  // Only verified individual live listings are comparable.
   const FEED_URL = 'data/listings-feed.json';
+  const API_URL = '/api/listings';
 
   const normalizeListing = (x) => ({
     id: String(x.id || ''),
@@ -25,20 +25,32 @@
 
   const valid = (x) => x.id && x.carId && x.city && Number.isFinite(x.price) && x.price > 0 && x.url && x.isLive && x.verificationStatus === 'verified';
 
-  async function loadListings() {
-    try {
-      const res = await fetch(`${FEED_URL}?t=${Date.now()}`, { cache: 'no-store' });
-      if (!res.ok) throw new Error(`listing feed HTTP ${res.status}`);
-      const data = await res.json();
-      const rows = Array.isArray(data) ? data : data.listings;
-      window.liveListings = Array.isArray(rows) ? rows.map(normalizeListing).filter(valid) : [];
-      window.listingFeedMeta = data && !Array.isArray(data) ? (data.meta || {}) : {};
-    } catch (err) {
-      console.warn('Listing feed unavailable:', err);
-      window.liveListings = [];
-      window.listingFeedMeta = { status: 'unavailable' };
-    }
+  function setRows(data) {
+    const rows = Array.isArray(data) ? data : data?.listings;
+    window.liveListings = Array.isArray(rows) ? rows.map(normalizeListing).filter(valid) : [];
+    window.listingFeedMeta = data && !Array.isArray(data) ? (data.meta || {}) : {};
     return window.liveListings;
+  }
+
+  async function loadListings() {
+    // Prefer the backend API. Fall back to the static feed if the site is not
+    // running on Cloudflare Pages yet.
+    try {
+      const res = await fetch(`${API_URL}?t=${Date.now()}`, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`listing API HTTP ${res.status}`);
+      return setRows(await res.json());
+    } catch (apiError) {
+      try {
+        const res = await fetch(`${FEED_URL}?t=${Date.now()}`, { cache: 'no-store' });
+        if (!res.ok) throw new Error(`listing feed HTTP ${res.status}`);
+        return setRows(await res.json());
+      } catch (feedError) {
+        console.warn('Listing service unavailable:', apiError, feedError);
+        window.liveListings = [];
+        window.listingFeedMeta = { status: 'unavailable' };
+        return [];
+      }
+    }
   }
 
   window.listingApiPromise = loadListings();
