@@ -1,7 +1,7 @@
 {
-  "version": "1.1.4",
-  "versionCode": 15,
-  "name": "نسخه ۱.۱.۴",
-  "notes": "رفع باگ فیلتر بودجه؛ هیچ خودرویی بالاتر از بودجه وارد نتایج نمی‌شود",
+  "version": "1.1.5",
+  "versionCode": 16,
+  "name": "نسخه ۱.۱.۵",
+  "notes": "افزایش دیتابیس خودروها، نمایش تا ۱۰ پیشنهاد داخل بودجه و افزودن لینک مشاهده آگهی",
   "downloadUrl": "https://github.com/Morijooob/dastyar-khodro/actions"
 }
