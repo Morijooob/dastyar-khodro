@@ -1,0 +1,13 @@
+{
+  "updatedAt": "1405-06-16",
+  "source": "1car",
+  "note": "قیمت‌های مرجع بازار؛ برای تحلیل و مقایسه استفاده می‌شوند و قیمت قطعی معامله نیستند.",
+  "prices": [
+    {"carId":"quick-gxl","price":1380,"date":"1405-06-16","source":"1car"},
+    {"carId":"peugeot-207-tu3","price":1940,"date":"1405-06-16","source":"1car"},
+    {"carId":"dana-plus-auto","price":3300,"date":"1405-06-16","source":"1car"},
+    {"carId":"taha-auto-v4","price":3200,"date":"1405-06-16","source":"1car"},
+    {"carId":"shahin-plus","price":3180,"date":"1405-06-16","source":"1car"},
+    {"carId":"rira","price":4250,"date":"1405-06-16","source":"1car"}
+  ]
+}
