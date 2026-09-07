@@ -1,7 +1,7 @@
 {
-  "version": "1.1.7",
-  "versionCode": 18,
-  "name": "نسخه ۱.۱.۷",
-  "notes": "بودجه تومان، حداقل ۵۰۰ میلیون، پیشنهاد در بازه ±۱۰۰ میلیون و مسیرهای خرید دیوار و شیپور",
+  "version": "1.2.0",
+  "versionCode": 19,
+  "name": "نسخه ۱.۲.۰",
+  "notes": "نمایش وضعیت قیمت آگهی نسبت به متوسط بازار و به‌روزرسانی مرجع قیمت بازار",
   "downloadUrl": "https://github.com/Morijooob/dastyar-khodro/actions"
 }
