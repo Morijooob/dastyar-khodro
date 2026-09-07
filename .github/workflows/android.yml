@@ -59,17 +59,59 @@ jobs:
       - name: Sync web app into Android
         run: npx cap sync android
 
+      - name: Configure persistent release signing
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > dastyar-release.keystore
+          cat > keystore.properties <<EOF
+          storeFile=dastyar-release.keystore
+          storePassword=$ANDROID_KEYSTORE_PASSWORD
+          keyAlias=$ANDROID_KEY_ALIAS
+          keyPassword=$ANDROID_KEY_PASSWORD
+          EOF
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('app/build.gradle')
+          s = p.read_text()
+          marker = 'android {'
+          signing = '''android {\n    signingConfigs {\n        release {\n            def propsFile = rootProject.file("keystore.properties")\n            def props = new Properties()\n            if (propsFile.exists()) propsFile.withInputStream { props.load(it) }\n            if (propsFile.exists()) {\n                storeFile rootProject.file(props['storeFile'])\n                storePassword props['storePassword']\n                keyAlias props['keyAlias']\n                keyPassword props['keyPassword']\n            }\n        }\n    }'''
+          if 'signingConfigs {' not in s:
+              s = s.replace(marker, signing, 1)
+          if 'signingConfig signingConfigs.release' not in s:
+              s = s.replace('buildTypes {', 'buildTypes {\n        release {\n            signingConfig signingConfigs.release\n        }', 1)
+          p.write_text(s)
+          PY
+
       - name: Build installable APK
         working-directory: android
-        run: ./gradlew --no-daemon assembleDebug
+        run: |
+          if [ -f keystore.properties ]; then
+            ./gradlew --no-daemon assembleRelease
+          else
+            ./gradlew --no-daemon assembleDebug
+          fi
 
       - name: Verify APK output
         run: |
-          test -s android/app/build/outputs/apk/debug/app-debug.apk
-          ls -lh android/app/build/outputs/apk/debug/app-debug.apk
+          if [ -f android/app/build/outputs/apk/release/app-release.apk ]; then
+            test -s android/app/build/outputs/apk/release/app-release.apk
+            ls -lh android/app/build/outputs/apk/release/app-release.apk
+          else
+            test -s android/app/build/outputs/apk/debug/app-debug.apk
+            ls -lh android/app/build/outputs/apk/debug/app-debug.apk
+          fi
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: dastyar-khodro-android-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: |
+            android/app/build/outputs/apk/release/app-release.apk
+            android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
