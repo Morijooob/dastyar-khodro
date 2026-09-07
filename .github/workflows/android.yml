@@ -16,6 +16,8 @@ on:
 env:
   HAS_RELEASE_KEY: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
 
+auto_cancel: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -53,17 +55,38 @@ jobs:
       - name: Add Android platform
         run: npx cap add android
 
+      - name: Set Android app version for update-safe installs
+        working-directory: android
+        env:
+          APP_RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          python3 - <<'PY'
+          import json, re
+          from pathlib import Path
+          p = Path('app/build.gradle')
+          s = p.read_text()
+          version = json.loads(Path('../version.json').read_text())['version']
+          run_number = int(__import__('os').environ['APP_RUN_NUMBER'])
+          s = re.sub(r'versionCode\\s+\\d+', f'versionCode {run_number}', s, count=1)
+          s = re.sub(r'versionName\\s+"[^"]+"', f'versionName "{version}"', s, count=1)
+          p.write_text(s)
+          print(f'Android versionName={version}, versionCode={run_number}')
+          PY
+
       - name: Set current Android target SDK
         working-directory: android
         run: |
           sed -i -E 's/(compileSdkVersion[[:space:]]*=[[:space:]]*)[0-9]+/\136/' variables.gradle
           sed -i -E 's/(targetSdkVersion[[:space:]]*=[[:space:]]*)[0-9]+/\136/' variables.gradle
 
-      - name: Sync web app into Android
-        run: npx cap sync android
+      - name: Verify persistent signing is configured
+        if: ${{ env.HAS_RELEASE_KEY == '' }}
+        run: |
+          echo 'ERROR: Persistent Android signing is not configured.'
+          echo 'Add ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS and ANDROID_KEY_PASSWORD to GitHub Actions secrets.'
+          exit 1
 
       - name: Configure persistent release signing
-        if: ${{ env.HAS_RELEASE_KEY != '' }}
         working-directory: android
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -84,37 +107,27 @@ jobs:
           s = p.read_text()
           if 'signingConfigs {' not in s:
               marker = 'android {'
-              signing = '''android {\n    signingConfigs {\n        release {\n            def propsFile = rootProject.file("keystore.properties")\n            def props = new Properties()\n            if (propsFile.exists()) propsFile.withInputStream { props.load(it) }\n            if (propsFile.exists()) {\n                storeFile rootProject.file(props['storeFile'])\n                storePassword props['storePassword']\n                keyAlias props['keyAlias']\n                keyPassword props['keyPassword']\n            }\n        }\n    }'''
+              signing = '''android {\n    signingConfigs {\n        release {\n            def propsFile = rootProject.file("keystore.properties")\n            def props = new Properties()\n            if (propsFile.exists()) propsFile.withInputStream { props.load(it) }\n            storeFile rootProject.file(props['storeFile'])\n            storePassword props['storePassword']\n            keyAlias props['keyAlias']\n            keyPassword props['keyPassword']\n        }\n    }'''
               s = s.replace(marker, signing, 1)
-          if 'signingConfig signingConfigs.release' not in s:
-              s = s.replace('buildTypes {', 'buildTypes {\n        release {\n            signingConfig signingConfigs.release\n        }', 1)
+          s = s.replace('buildTypes {', 'buildTypes {\n        release {\n            signingConfig signingConfigs.release\n        }', 1) if 'signingConfig signingConfigs.release' not in s else s
           p.write_text(s)
           PY
 
+      - name: Sync web app into Android
+        run: npx cap sync android
+
       - name: Build installable APK
         working-directory: android
-        run: |
-          if [ -f keystore.properties ]; then
-            ./gradlew --no-daemon assembleRelease
-          else
-            ./gradlew --no-daemon assembleDebug
-          fi
+        run: ./gradlew --no-daemon assembleRelease
 
       - name: Verify APK output
         run: |
-          if [ -f android/app/build/outputs/apk/release/app-release.apk ]; then
-            test -s android/app/build/outputs/apk/release/app-release.apk
-            ls -lh android/app/build/outputs/apk/release/app-release.apk
-          else
-            test -s android/app/build/outputs/apk/debug/app-debug.apk
-            ls -lh android/app/build/outputs/apk/debug/app-debug.apk
-          fi
+          test -s android/app/build/outputs/apk/release/app-release.apk
+          ls -lh android/app/build/outputs/apk/release/app-release.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: dastyar-khodro-android-apk
-          path: |
-            android/app/build/outputs/apk/release/app-release.apk
-            android/app/build/outputs/apk/debug/app-debug.apk
+          path: android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
