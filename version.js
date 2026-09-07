@@ -1,2 +1,2 @@
-window.APP_VERSION = '1.1.6';
-window.APP_VERSION_CODE = 17;
+window.APP_VERSION = '1.1.7';
+window.APP_VERSION_CODE = 18;
