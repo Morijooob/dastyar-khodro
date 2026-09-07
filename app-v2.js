@@ -24,6 +24,7 @@
       console.log('Remote market feed skipped:', e);
     }
   }
+  const marketFeedPromise = refreshMarketPrices();
   function getMarketInfo(car) {
     const rows = Array.isArray(window.marketPrices) ? window.marketPrices : [];
     const matches = rows.filter(x => x.carId === car.id && Number.isFinite(Number(x.price)) && x.date);
@@ -39,8 +40,7 @@
       return `<div class="price-change flat">📊 وضعیت بازار: اطلاعات آگهی قابل مقایسه برای این خودرو نداریم.</div>`;
     }
     const listingPrice = Number(c.bestListing.price);
-    const diff = listingPrice - info.price;
-    const pct = (diff / info.price) * 100;
+    const pct = ((listingPrice - info.price) / info.price) * 100;
     const rounded = Math.abs(pct) < 0.1 ? 0 : Math.round(Math.abs(pct) * 10) / 10;
     if (Math.abs(pct) <= MARKET_NEAR_PERCENT) return `<div class="price-change flat">🟡 نزدیک به متوسط قیمت بازار · ${fa(info.price)} میلیون تومان <small>(${faText(info.date)} · مرجع بازار)</small></div>`;
     if (pct < 0) return `<div class="price-change down">🟢 پایین‌تر از قیمت بازار · ${fa(rounded)}٪ کمتر از متوسط بازار</div>`;
@@ -98,13 +98,13 @@
   function showError(message){ document.getElementById('app-error')?.remove(); const box=document.createElement('div'); box.id='app-error'; box.style.cssText='max-width:720px;margin:16px auto;padding:14px;border-radius:14px;background:#fff2ed;border:1px solid #f1d0c3;color:#8b2e13;font-weight:700;text-align:center;'; box.textContent=message; document.getElementById('car-form')?.before(box); }
   function init(){
     const form=document.getElementById('car-form'); if(!form) return showError('فرم خودرو پیدا نشد.');
-    refreshMarketPrices();
     const budgetInput=document.getElementById('budget');
     if(budgetInput) budgetInput.addEventListener('input',()=>{ const digits=normalizeDigits(budgetInput.value).replace(/\D/g,''); budgetInput.value=digits?Number(digits).toLocaleString('fa-IR'):''; });
-    form.addEventListener('submit',e=>{
+    form.addEventListener('submit',async e=>{
       e.preventDefault();
       try{
         removeResults();
+        await marketFeedPromise;
         const budgetToman=parseBudgetToman(document.getElementById('budget')?.value);
         const gearbox=safeChecked('gearbox'),use=safeChecked('use'),priority=safeChecked('priority'),year=safeChecked('year'),passengers=safeChecked('passengers');
         const city=document.getElementById('city')?.value||'all';
