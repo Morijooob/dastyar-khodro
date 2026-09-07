@@ -1,7 +1,7 @@
 {
-  "version": "1.1.6",
-  "versionCode": 17,
-  "name": "نسخه ۱.۱.۶",
-  "notes": "افزودن انتخاب شهر، لینک آگهی بر اساس شهر و نمایش همیشگی دکمه خرید",
+  "version": "1.1.7",
+  "versionCode": 18,
+  "name": "نسخه ۱.۱.۷",
+  "notes": "بودجه تومان، حداقل ۵۰۰ میلیون، پیشنهاد در بازه ±۱۰۰ میلیون و مسیرهای خرید دیوار و شیپور",
   "downloadUrl": "https://github.com/Morijooob/dastyar-khodro/actions"
 }
