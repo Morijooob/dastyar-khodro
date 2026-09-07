@@ -1,10 +1,9 @@
 const carData = [
-  {id:'quick-gxl',name:'کوییک GXL',brand:'سایپا',gearbox:'manual',price:1310,body:'hatchback',uses:['city','family'],fuel:'petrol',maintenance:8,resale:8,economy:8,comfort:6,risk:5},
-  {id:'peugeot-207-tu3',name:'پژو 207 TU3',brand:'ایران خودرو',gearbox:'manual',price:1870,body:'hatchback',uses:['city','family'],fuel:'petrol',maintenance:7,resale:9,economy:7,comfort:7,risk:5},
-  {id:'dana-plus-auto',name:'دنا پلاس اتوماتیک',brand:'ایران خودرو',gearbox:'auto',price:3220,body:'sedan',uses:['city','family','travel'],fuel:'petrol',maintenance:6,resale:8,economy:5,comfort:8,risk:6},
-  {id:'taha-auto-v4',name:'تارا اتوماتیک V4',brand:'ایران خودرو',gearbox:'auto',price:3150,body:'sedan',uses:['city','family','travel'],fuel:'petrol',maintenance:6,resale:8,economy:6,comfort:8,risk:5},
-  {id:'shahin-plus-auto',name:'شاهین پلاس اتوماتیک',brand:'سایپا',gearbox:'auto',price:3145,body:'sedan',uses:['city','family','travel'],fuel:'petrol',maintenance:6,resale:7,economy:6,comfort:8,risk:6},
-  {id:'rira',name:'ری‌را',brand:'ایران خودرو',gearbox:'auto',price:4250,body:'crossover',uses:['city','family','travel'],fuel:'petrol',maintenance:5,resale:7,economy:5,comfort:9,risk:6}
+  {id:'quick-gxl',name:'کوییک GX L',brand:'سایپا',gearbox:'manual',price:1220,priceUnit:'million_toman',priceDate:'1405-06-02',priceSource:'فرارو',body:'hatchback',uses:['city','family'],maintenance:8,resale:8,economy:8,comfort:6,risk:5,pros:['هزینه نگهداری نسبتاً پایین','مناسب شهر'],cons:['امکانات و کیفیت سواری متوسط']},
+  {id:'peugeot-207-tu3',name:'پژو 207 TU3',brand:'ایران خودرو',gearbox:'manual',price:1700,priceUnit:'million_toman',priceDate:'1405-06-02',priceSource:'فرارو',body:'hatchback',uses:['city','family'],maintenance:7,resale:9,economy:7,comfort:7,risk:5,pros:['بازار فروش قوی','قطعات و خدمات فراوان'],cons:['فضای عقب محدودتر']},
+  {id:'dana-plus-auto',name:'دنا پلاس اتوماتیک آپشنال',brand:'ایران خودرو',gearbox:'auto',price:2900,priceUnit:'million_toman',priceDate:'1405-06-02',priceSource:'فرارو',body:'sedan',uses:['city','family','travel'],maintenance:6,resale:8,economy:5,comfort:8,risk:6,pros:['امکانات و فضای مناسب','مناسب خانواده و سفر'],cons:['مصرف و هزینه نگهداری بالاتر از گزینه‌های اقتصادی']},
+  {id:'taha-auto-v4',name:'تارا اتوماتیک V4',brand:'ایران خودرو',gearbox:'auto',price:2850,priceUnit:'million_toman',priceDate:'1405-06-02',priceSource:'فرارو',body:'sedan',uses:['city','family','travel'],maintenance:6,resale:8,economy:6,comfort:8,risk:5,pros:['فضای مناسب','تعادل خوب بین استفاده شهری و سفر'],cons:['قیمت بالاتر از خودروهای اقتصادی']},
+  {id:'shahin-plus',name:'شاهین پلاس',brand:'سایپا',gearbox:'auto',price:2600,priceUnit:'million_toman',priceDate:'1405-06-01',priceSource:'نمناک',body:'sedan',uses:['city','family','travel'],maintenance:6,resale:7,economy:6,comfort:8,risk:6,pros:['فضای مناسب و گیربکس اتومات'],cons:['بازار فروش ضعیف‌تر از 207']},
+  {id:'rira',name:'ری‌را توربو 6 سرعته',brand:'ایران خودرو',gearbox:'auto',price:3800,priceUnit:'million_toman',priceDate:'1405-06-02',priceSource:'فرارو',body:'crossover',uses:['city','family','travel'],maintenance:5,resale:7,economy:5,comfort:9,risk:6,pros:['کراس‌اوور جدیدتر و امکانات بیشتر'],cons:['هزینه خرید و نگهداری بالاتر']}
 ];
-
 if (typeof module !== 'undefined') module.exports = {carData};
