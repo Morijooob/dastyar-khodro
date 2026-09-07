@@ -1,7 +1,7 @@
 {
-  "version": "1.1.1",
-  "versionCode": 12,
-  "name": "نسخه ۱.۱.۱",
-  "notes": "رفع ریشه‌ای مشکل دکمه پیدا کردن خودرو و سازگاری بهتر با نسخه اندروید",
+  "version": "1.1.4",
+  "versionCode": 15,
+  "name": "نسخه ۱.۱.۴",
+  "notes": "رفع باگ فیلتر بودجه؛ هیچ خودرویی بالاتر از بودجه وارد نتایج نمی‌شود",
   "downloadUrl": "https://github.com/Morijooob/dastyar-khodro/actions"
 }
