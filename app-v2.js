@@ -23,13 +23,13 @@
   }
   function getListings(car, city='all') {
     if (!Array.isArray(window.listings)) return [];
-    return window.listings.filter(x => x.carId === car.id && Number.isFinite(Number(x.price))).filter(x => city === 'all' || !x.city || x.city === cityNames[city]).map(x => ({...x,price:Number(x.price),year:Number(x.year)||null,mileage:Number(x.mileage)||null}));
+    return window.listings.filter(x => x.carId === car.id && Number.isFinite(Number(x.price))).filter(x => city === 'all' || x.city === cityNames[city]).map(x => ({...x,price:Number(x.price),year:Number(x.year)||null,mileage:Number(x.mileage)||null}));
   }
   function scoreCar(car,p) {
     const price = getMarketPrice(car);
     const difference = price - p.budget;
     const absoluteDifference = Math.abs(difference);
-    let score = Math.max(0,55 - absoluteDifference * 0.25);
+    const priceFit = Math.max(0, 40 - (absoluteDifference / PRICE_WINDOW_MILLION) * 40); let score = priceFit;
     const reasons = [];
     reasons.push(`قیمت مرجع در بازه ${fa(p.budget-PRICE_WINDOW_MILLION)} تا ${fa(p.budget+PRICE_WINDOW_MILLION)} میلیون تومان است.`);
     reasons.push(price <= p.budget ? 'قیمت مرجع پایین‌تر یا برابر بودجه شماست.' : `${fa(difference)} میلیون تومان بالاتر از بودجه است؛ برای مقایسه نزدیک نگه داشته شده.`);
@@ -41,10 +41,10 @@
     if (p.priority === 'resale' && car.resale >= 8) reasons.push('بازار فروش بهتری دارد.');
     if (p.passengers >= 5 && (car.passengers || 5) >= 5) { score += 5; reasons.push('برای ۵ سرنشین مناسب است.'); }
     if (p.passengers <= 2 && Array.isArray(car.uses) && car.uses.includes('city')) score += 3;
-    if (p.year === 'new') score += Math.min(7,Math.max(0,(Number(car.year)-1398)*1.1));
-    if (p.year === 'old') score += Math.min(7,Math.max(0,(1403-Number(car.year))*1.1));
+    if (p.year === "new") score += Math.min(10,Math.max(0,(Number(car.year)-1398)*1.7));
+    if (p.year === "old") score += Math.min(10,Math.max(0,(1403-Number(car.year))*1.7));
     if (p.year === 'balanced') score += 4;
-    const bestListing = getListings(car,p.city).filter(x => Math.abs(x.price-p.budget) <= PRICE_WINDOW_MILLION).sort((a,b) => Math.abs(a.price-p.budget)-Math.abs(b.price-p.budget))[0] || null;
+    const bestListing = getListings(car,p.city).filter(x => Math.abs(x.price-p.budget) <= PRICE_WINDOW_MILLION).sort((a,b) => Math.abs(a.price-p.budget)-Math.abs(b.price-p.budget))[0] || null; if (bestListing) score += 10; if (p.city === "all" || getListings(car,p.city).length > 0) score += 5;
     return {...car,price,difference,absoluteDifference,match:Math.max(0,Math.min(100,Math.round(score))),reasons:reasons.slice(0,4),bestListing,listingCity:cityNames[p.city]||'همه شهرها',divarUrl:bestListing?.url && bestListing.url !== '#' ? bestListing.url : divarUrl(p.city,car.name||car.title)};
   }
   function removeResults(){ document.getElementById('results')?.remove(); document.getElementById('app-error')?.remove(); }
