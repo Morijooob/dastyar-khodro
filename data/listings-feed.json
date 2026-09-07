@@ -1,0 +1,9 @@
+{
+  "meta": {
+    "version": 1,
+    "status": "empty_until_verified_source_is_connected",
+    "updatedAt": "2026-09-07",
+    "note": "Only verified individual listings belong here. Search pages and estimated market prices must not be inserted as live listings."
+  },
+  "listings": []
+}
