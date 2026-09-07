@@ -1,8 +1,6 @@
 (() => {
   'use strict';
 
-  // Unified listing data layer.
-  // Only verified individual live listings are comparable.
   const FEED_URL = 'data/listings-feed.json';
   const API_URL = '/api/listings';
 
@@ -32,17 +30,25 @@
     return window.liveListings;
   }
 
-  async function loadListings() {
-    // Prefer the backend API. Fall back to the static feed if the site is not
-    // running on Cloudflare Pages yet.
+  async function loadListings(carId = '', city = 'all', budget = 0) {
     try {
-      const res = await fetch(`${API_URL}?t=${Date.now()}`, { cache: 'no-store' });
+      const params = new URLSearchParams();
+      if (carId) params.set('carId', carId);
+      if (city && city !== 'all') params.set('city', city);
+      if (Number.isFinite(Number(budget)) && Number(budget) > 0) {
+        params.set('minPrice', String(Math.max(0, Number(budget) - 100)));
+        params.set('maxPrice', String(Number(budget) + 100));
+      }
+      params.set('t', String(Date.now()));
+      const res = await fetch(`${API_URL}?${params.toString()}`, { cache: 'no-store' });
       if (!res.ok) throw new Error(`listing API HTTP ${res.status}`);
+      window.listingApiSource = 'api';
       return setRows(await res.json());
     } catch (apiError) {
       try {
         const res = await fetch(`${FEED_URL}?t=${Date.now()}`, { cache: 'no-store' });
         if (!res.ok) throw new Error(`listing feed HTTP ${res.status}`);
+        window.listingApiSource = 'local-fallback';
         return setRows(await res.json());
       } catch (feedError) {
         console.warn('Listing service unavailable:', apiError, feedError);
@@ -54,6 +60,7 @@
   }
 
   window.listingApiPromise = loadListings();
+  window.refreshVerifiedListings = (carId, city, budget) => loadListings(carId, city, budget);
   window.getVerifiedListings = (carId, city) => {
     const rows = Array.isArray(window.liveListings) ? window.liveListings : [];
     return rows.filter(x => x.carId === carId && (!city || city === 'all' || x.city === city));
