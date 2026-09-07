@@ -121,20 +121,35 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           set -uo pipefail
-          echo '=== Android signing diagnostics (values are never printed) ==='
+          echo '=== Android signing diagnostics (secret values are never printed) ==='
           echo '1) Keystore file:'
           if test -s dastyar-release.keystore; then
-            echo '   OK: keystore file exists and is non-empty.'
+            echo '   OK: decoded keystore exists and is non-empty.'
+            echo "   Size: $(stat -c%s dastyar-release.keystore) bytes"
+            echo "   SHA-256: $(sha256sum dastyar-release.keystore | cut -d' ' -f1)"
+            echo "   File type: $(file -b dastyar-release.keystore)"
           else
-            echo '   FAIL: keystore file is missing or empty.'
+            echo '   FAIL: decoded keystore is missing or empty.'
             exit 1
           fi
 
-          echo '2) Store password + keystore integrity:'
-          if keytool -list -keystore dastyar-release.keystore -storepass "$ANDROID_KEYSTORE_PASSWORD" >/dev/null 2>&1; then
-            echo '   OK: store password is valid and keystore can be opened.'
+          echo '2) Keystore format + store password:'
+          jks_ok=0
+          pkcs12_ok=0
+          if keytool -list -storetype JKS -keystore dastyar-release.keystore -storepass "$ANDROID_KEYSTORE_PASSWORD" >/dev/null 2>&1; then
+            jks_ok=1
+          fi
+          if keytool -list -storetype PKCS12 -keystore dastyar-release.keystore -storepass "$ANDROID_KEYSTORE_PASSWORD" >/dev/null 2>&1; then
+            pkcs12_ok=1
+          fi
+          if [ "$jks_ok" -eq 1 ] || [ "$pkcs12_ok" -eq 1 ]; then
+            echo '   OK: keystore is readable with the supplied store password.'
+            if [ "$jks_ok" -eq 1 ]; then echo '   Detected format: JKS'; fi
+            if [ "$pkcs12_ok" -eq 1 ]; then echo '   Detected format: PKCS12'; fi
           else
-            echo '   FAIL: store password is invalid OR keystore is not a valid readable keystore.'
+            echo '   FAIL: supplied store password does not open this decoded keystore.'
+            echo '   The Base64 decoded file exists, so check that ANDROID_KEYSTORE_PASSWORD belongs to this exact keystore.'
+            echo '   If the password is confirmed, replace ANDROID_KEYSTORE_BASE64 with a fresh Base64 encoding of the original keystore.'
             exit 1
           fi
 
