@@ -3,7 +3,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'ir.dastyarkhodro.app',
   appName: 'دستیار خودرو',
-  webDir: 'web',
+  webDir: '.',
   bundledWebRuntime: false,
   server: {
     androidScheme: 'https'
