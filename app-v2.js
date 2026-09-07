@@ -8,7 +8,7 @@
     .replace(/[٠-٩]/g, d => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
     .replace(/[٬,]/g, '')
     .replace(/[٫]/g, '.');
-  const parseBudget = value => {
+  const parseBudgetToman = value => {
     const n = Number(normalizeDigits(value).trim());
     return Number.isFinite(n) ? n : 0;
   };
@@ -95,20 +95,27 @@
   function init() {
     const form = document.getElementById('car-form');
     if (!form) return showError('فرم خودرو پیدا نشد.');
+
+    const budgetInput = document.getElementById('budget');
+    if (budgetInput) {
+      budgetInput.addEventListener('input', () => {
+        const digits = normalizeDigits(budgetInput.value).replace(/\D/g, '');
+        budgetInput.value = digits ? Number(digits).toLocaleString('fa-IR') : '';
+      });
+    }
+
     form.addEventListener('submit', e => {
       e.preventDefault();
       try {
         removeResults();
-        const budget = parseBudget(document.getElementById('budget')?.value);
+        const budgetToman = parseBudgetToman(document.getElementById('budget')?.value);
+        const budget = budgetToman / 1000000;
         const gearbox = safeChecked('gearbox'), use = safeChecked('use'), priority = safeChecked('priority'), year = safeChecked('year'), passengers = safeChecked('passengers');
-        if (!budget || budget <= 0) return showError('لطفاً بودجه را به میلیون تومان وارد کن.');
+        if (!budgetToman || budgetToman <= 0) return showError('لطفاً مبلغ دقیق بودجه را به تومان وارد کن. مثلاً ۵۰۰,۰۰۰,۰۰۰ تومان.');
         if (!gearbox || !use || !priority || !year || !passengers) return showError('لطفاً همه انتخاب‌ها را کامل کن.');
         if (!Array.isArray(window.carData) || !window.carData.length) return showError('اطلاعات خودروها بارگذاری نشده است.');
         const p = { budget, gearbox: gearbox.value, use: use.value, priority: priority.value, year: year.value, passengers: Number(passengers.value) };
 
-        // HARD BUDGET GATE: use the SAME effective market price that is shown to the user.
-        // This prevents a car whose base price is affordable but latest market price is above
-        // the budget from ever entering the scoring/render pipeline.
         const scored = window.carData.map(c => scoreCar(c, p));
         const affordable = scored.filter(c => Number.isFinite(c.price) && c.price > 0 && c.price <= p.budget);
 
@@ -117,7 +124,6 @@
           return showNoBudgetMatch(p, prices.length ? Math.min(...prices) : 0);
         }
 
-        // FINAL SAFETY GATE: never render an item above the entered budget.
         const finalResults = affordable
           .filter(c => c.price <= p.budget)
           .sort((a,b) => b.match - a.match)
