@@ -8,64 +8,47 @@ function getPriceHistory(carId) {
 function getLatestMarketPrice(carId) {
   const history = getPriceHistory(carId);
   if (!history.length) return null;
-
   const latestDate = history[0].date;
   const sameDay = history.filter(p => p.date === latestDate);
   const average = sameDay.reduce((sum, p) => sum + Number(p.price), 0) / sameDay.length;
-
-  return {
-    price: Math.round(average),
-    date: latestDate,
-    source: sameDay.length > 1 ? 'میانگین چند منبع' : sameDay[0].source,
-    sourceCount: sameDay.length
-  };
+  return { price: Math.round(average), date: latestDate, source: sameDay.length > 1 ? 'میانگین چند منبع' : sameDay[0].source, sourceCount: sameDay.length };
 }
 
 function getPreviousMarketPrice(carId) {
   const history = getPriceHistory(carId);
   if (!history.length) return null;
-
   const latestDate = history[0].date;
   const previous = history.find(p => p.date !== latestDate);
   if (!previous) return null;
-
   const previousDate = previous.date;
   const sameDay = history.filter(p => p.date === previousDate);
   const average = sameDay.reduce((sum, p) => sum + Number(p.price), 0) / sameDay.length;
-
-  return {
-    price: Math.round(average),
-    date: previousDate,
-    source: sameDay.length > 1 ? 'میانگین چند منبع' : sameDay[0].source,
-    sourceCount: sameDay.length
-  };
+  return { price: Math.round(average), date: previousDate, source: sameDay.length > 1 ? 'میانگین چند منبع' : sameDay[0].source, sourceCount: sameDay.length };
 }
 
 function getPriceChange(carId) {
   const latest = getLatestMarketPrice(carId);
   const previous = getPreviousMarketPrice(carId);
   if (!latest || !previous || !previous.price) return null;
-
   const amount = latest.price - previous.price;
   const percent = (amount / previous.price) * 100;
-  return {
-    amount,
-    percent,
-    direction: amount > 0 ? 'up' : amount < 0 ? 'down' : 'flat'
-  };
+  return { amount, percent, direction: amount > 0 ? 'up' : amount < 0 ? 'down' : 'flat' };
+}
+
+function getValueForMoney(car, budget) {
+  const budgetFit = budget > 0 ? Math.max(0, Math.min(100, 100 - (Math.abs(car.price - budget) / budget) * 100)) : 0;
+  const quality = ((car.maintenance || 5) + (car.economy || 5) + (car.resale || 5) + (10 - (car.risk || 5))) * 2.5;
+  const pricePressure = car.price <= budget ? 100 : Math.max(0, 100 - ((car.price - budget) / budget) * 100);
+  const trendPenalty = car.priceChange && car.priceChange.percent > 10 ? Math.min(12, car.priceChange.percent - 10) : 0;
+  const score = (budgetFit * 0.35) + (quality * 0.35) + (pricePressure * 0.30) - trendPenalty;
+  const value = score >= 78 ? 'بالا' : score >= 62 ? 'متوسط' : 'پایین';
+  return { score: Math.max(0, Math.min(100, score)), value };
 }
 
 const cars = (Array.isArray(carData) ? carData : []).map(car => {
   const market = getLatestMarketPrice(car.id);
   const change = getPriceChange(car.id);
-  return {
-    ...car,
-    price: market ? market.price : car.price,
-    priceDate: market ? market.date : car.priceDate,
-    priceSource: market ? market.source : car.priceSource,
-    priceIsMarket: Boolean(market),
-    priceChange: change
-  };
+  return { ...car, price: market ? market.price : car.price, priceDate: market ? market.date : car.priceDate, priceSource: market ? market.source : car.priceSource, priceIsMarket: Boolean(market), priceChange: change };
 });
 
 const form = document.getElementById('car-form');
@@ -75,33 +58,17 @@ function scoreCar(car, p) {
   const reasons = [];
   const gap = Math.abs(car.price - p.budget) / Math.max(p.budget, 1);
   s += Math.max(0, 30 - gap * 30);
-
-  if (car.price <= p.budget) {
-    s += 15;
-    reasons.push('داخل بودجه شماست.');
-  } else {
-    s -= Math.min(12, 8 + gap * 10);
-    reasons.push('بالاتر از بودجه شماست؛ گزینه نزدیک‌تری برای مقایسه است.');
-  }
-  if (p.gearbox === 'any' || car.gearbox === p.gearbox) {
-    s += 20;
-    reasons.push(p.gearbox === 'auto' ? 'گیربکس اتومات مطابق انتخاب شماست.' : p.gearbox === 'manual' ? 'گیربکس دنده‌ای مطابق انتخاب شماست.' : 'گیربکس با نیاز شما سازگار است.');
-  }
-  if (car.uses.includes(p.use)) {
-    s += 15;
-    reasons.push(p.use === 'city' ? 'برای استفاده شهری مناسب است.' : p.use === 'family' ? 'برای استفاده خانوادگی مناسب است.' : 'برای سفر مناسب است.');
-  }
-  if ((p.priority === 'cheap' && car.maintenance >= 7) || (p.priority === 'fuel' && car.economy >= 7) || (p.priority === 'resale' && car.resale >= 8)) {
-    s += 15;
-    reasons.push(p.priority === 'cheap' ? 'هزینه نگهداری امتیاز خوبی دارد.' : p.priority === 'fuel' ? 'مصرف اقتصادی‌تری دارد.' : 'بازار فروش بهتری دارد.');
-  }
-  if (p.passengers >= 5 && car.passengers >= 5) {
-    s += 5;
-    reasons.push('برای ۵ سرنشین مناسب‌تر است.');
-  }
+  if (car.price <= p.budget) { s += 15; reasons.push('داخل بودجه شماست.'); }
+  else { s -= Math.min(12, 8 + gap * 10); reasons.push('بالاتر از بودجه شماست؛ گزینه نزدیک‌تری برای مقایسه است.'); }
+  if (p.gearbox === 'any' || car.gearbox === p.gearbox) { s += 20; reasons.push(p.gearbox === 'auto' ? 'گیربکس اتومات مطابق انتخاب شماست.' : p.gearbox === 'manual' ? 'گیربکس دنده‌ای مطابق انتخاب شماست.' : 'گیربکس با نیاز شما سازگار است.'); }
+  if (car.uses.includes(p.use)) { s += 15; reasons.push(p.use === 'city' ? 'برای استفاده شهری مناسب است.' : p.use === 'family' ? 'برای استفاده خانوادگی مناسب است.' : 'برای سفر مناسب است.'); }
+  if ((p.priority === 'cheap' && car.maintenance >= 7) || (p.priority === 'fuel' && car.economy >= 7) || (p.priority === 'resale' && car.resale >= 8)) { s += 15; reasons.push(p.priority === 'cheap' ? 'هزینه نگهداری امتیاز خوبی دارد.' : p.priority === 'fuel' ? 'مصرف اقتصادی‌تری دارد.' : 'بازار فروش بهتری دارد.'); }
+  if (p.passengers >= 5 && (car.passengers || 5) >= 5) { s += 5; reasons.push('برای ۵ سرنشین مناسب‌تر است.'); }
   if (p.passengers <= 2 && car.uses.includes('city')) s += 3;
-  if (car.year === p.year) s += 5;
-  return { ...car, match: Math.max(0, Math.min(99, s)), reasons: reasons.slice(0, 4) };
+  const value = getValueForMoney(car, p.budget);
+  s += Math.min(10, value.score / 10);
+  if (value.value === 'بالا') reasons.push('نسبت قیمت به کیفیت و هزینه نگهداری جذاب‌تر است.');
+  return { ...car, match: Math.max(0, Math.min(99, s)), reasons: reasons.slice(0, 4), valueScore: value.score, valueLabel: value.value };
 }
 
 function formatDate(date) {
@@ -130,15 +97,13 @@ if (form) form.addEventListener('submit', e => {
     year: document.querySelector('input[name="year"]:checked').value,
     passengers: Number(document.querySelector('input[name="passengers"]:checked').value)
   };
-
   const ranked = cars.map(c => scoreCar(c, p)).sort((a, b) => b.match - a.match).slice(0, 3);
   const old = document.getElementById('results');
   if (old) old.remove();
-
   const section = document.createElement('section');
   section.id = 'results';
   section.className = 'results';
-  section.innerHTML = `<div class="results-head"><div><span class="eyebrow">تحلیل دستیار خودرو</span><h2>🚗 پیشنهادهای مناسب تو</h2></div><span class="experimental">قیمت‌ها تاریخ‌دارند؛ زنده نیستند</span></div>${ranked.map((c, i) => `<article class="result-card ${i === 0 ? 'top-pick' : ''}"><div class="result-top"><div><span class="rank">پیشنهاد ${i + 1}</span><h3>${c.name}</h3></div><div class="score"><strong>${Math.round(c.match)}٪</strong><small>تطابق</small></div></div><div class="price">حدود ${c.price.toLocaleString('fa-IR')} میلیون تومان</div><div class="price-meta">📅 آخرین مشاهده: ${formatDate(c.priceDate)} · منبع: ${c.priceSource || 'داده پایه'}${c.priceIsMarket ? ' · بازار' : ' · پایه'}</div>${c.priceChange ? `<div class="price-change ${c.priceChange.direction}">${formatPriceChange(c.priceChange)}</div>` : ''}<p class="reason-title">چرا اینو پیشنهاد دادیم؟</p><ul>${c.reasons.map(x => `<li>${x}</li>`).join('')}</ul><div class="pros"><strong>نقاط قوت:</strong> ${c.pros.join('، ')}</div><div class="weakness"><strong>نقطه ضعف:</strong> ${c.cons.join('، ')}</div>${i === 0 ? '<div class="best-badge">⭐ انتخاب پیشنهادی</div>' : ''}</article>`).join('')}<p class="data-note">این قیمت‌ها snapshotهای تاریخ‌دار بازارند، نه قیمت لحظه‌ای. اختلاف بین منابع طبیعی است؛ در آینده با چند منبع، میانگین/میانه بازار را دقیق‌تر می‌کنیم. برای خرید واقعی، آگهی، کارکرد، وضعیت بدنه و کارشناسی هم باید بررسی شوند.</p>`;
+  section.innerHTML = `<div class="results-head"><div><span class="eyebrow">تحلیل دستیار خودرو</span><h2>🚗 پیشنهادهای مناسب تو</h2></div><span class="experimental">قیمت‌ها تاریخ‌دارند؛ زنده نیستند</span></div>${ranked.map((c, i) => `<article class="result-card ${i === 0 ? 'top-pick' : ''}"><div class="result-top"><div><span class="rank">پیشنهاد ${i + 1}</span><h3>${c.name}</h3></div><div class="score"><strong>${Math.round(c.match)}٪</strong><small>تطابق</small></div></div><div class="price">حدود ${c.price.toLocaleString('fa-IR')} میلیون تومان</div><div class="price-meta">📅 آخرین مشاهده: ${formatDate(c.priceDate)} · منبع: ${c.priceSource || 'داده پایه'}${c.priceIsMarket ? ' · بازار' : ' · پایه'}</div>${c.priceChange ? `<div class="price-change ${c.priceChange.direction}">${formatPriceChange(c.priceChange)}</div>` : ''}<div class="value-box"><strong>💰 ارزش خرید: ${c.valueLabel}</strong><span>امتیاز ارزش ${Math.round(c.valueScore)} از ۱۰۰</span></div><p class="reason-title">چرا اینو پیشنهاد دادیم؟</p><ul>${c.reasons.map(x => `<li>${x}</li>`).join('')}</ul><div class="pros"><strong>نقاط قوت:</strong> ${c.pros.join('، ')}</div><div class="weakness"><strong>نقطه ضعف:</strong> ${c.cons.join('، ')}</div>${i === 0 ? '<div class="best-badge">⭐ انتخاب پیشنهادی</div>' : ''}</article>`).join('')}<p class="data-note">ارزش خرید یک امتیاز آزمایشی بر پایه قیمت بازار، فاصله از بودجه، هزینه نگهداری، مصرف، فروش مجدد و ریسک داده‌شده است؛ با اضافه شدن آگهی‌های واقعی و هزینه‌های مالکیت، این مدل دقیق‌تر می‌شود. قیمت‌ها snapshotهای تاریخ‌دار بازارند، نه قیمت لحظه‌ای.</p>`;
   form.after(section);
   section.scrollIntoView({ behavior: 'smooth', block: 'start' });
 });
