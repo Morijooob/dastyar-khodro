@@ -25,9 +25,11 @@
     let score = 0;
     const reasons = [];
     const gap = Math.abs(price - p.budget) / Math.max(p.budget, 1);
+
+    // Budget is a hard filter in init(); scoring only ranks cars already inside budget.
     score += Math.max(0, 30 - gap * 30);
-    if (price <= p.budget) { score += 15; reasons.push('داخل بودجه شماست.'); }
-    else { score -= Math.min(12, 8 + gap * 10); reasons.push('کمی بالاتر از بودجه شماست.'); }
+    if (price <= p.budget) reasons.push('داخل بودجه شماست.');
+
     if (p.gearbox === 'any' || car.gearbox === p.gearbox) { score += 20; reasons.push('گیربکس مطابق انتخاب شماست.'); }
     if (Array.isArray(car.uses) && car.uses.includes(p.use)) { score += 15; reasons.push(p.use === 'city' ? 'برای استفاده شهری مناسب است.' : p.use === 'family' ? 'برای استفاده خانوادگی مناسب است.' : 'برای سفر مناسب است.'); }
     if ((p.priority === 'cheap' && car.maintenance >= 7) || (p.priority === 'fuel' && car.economy >= 7) || (p.priority === 'resale' && car.resale >= 8)) score += 15;
@@ -54,11 +56,11 @@
       results.map((c,i) => `<article class="result-card ${i === 0 ? 'top-pick' : ''}">
         <div class="result-top"><div><span class="rank">${i === 0 ? '🏆 پیشنهاد اول' : `گزینه ${i+1}`}</span><h3>${c.name || c.title || 'خودرو'}</h3></div><div class="score"><strong>${Number.isFinite(Number(c.match)) ? Number(c.match) : 0}</strong><small>امتیاز</small></div></div>
         <div class="price">💰 ${fa(c.price)} میلیون تومان</div>
-        <div class="price-meta">قیمت برای مقایسه است و ممکن است به‌روز لحظه‌ای نباشد.</div>
+        <div class="price-meta">بودجه شما: ${fa(p.budget)} میلیون تومان · فقط خودروهای داخل بودجه نمایش داده می‌شوند.</div>
         <div class="reason-title">چرا این گزینه؟</div><ul>${c.reasons.map(x => `<li>${x}</li>`).join('')}</ul>
         ${c.bestListing ? `<div class="listing-summary"><strong>🔎 آگهی نمونه: ${fa(c.bestListing.price)} میلیون</strong><span>${c.bestListing.city || 'شهر نامشخص'} · ${c.bestListing.year ? 'مدل '+c.bestListing.year : 'سال نامشخص'}${c.bestListing.mileage ? ' · '+fa(c.bestListing.mileage)+' کیلومتر' : ''}</span></div>` : ''}
         ${i === 0 ? '<span class="best-badge">⭐ بهترین تطبیق با انتخاب‌های شما</span>' : ''}
-      </article>`).join('') + `<div class="data-note">انتخاب‌ها: ${p.gearbox === 'any' ? 'هر گیربکس' : p.gearbox === 'auto' ? 'اتومات' : 'دنده‌ای'} · ${p.use === 'city' ? 'شهری' : p.use === 'family' ? 'خانوادگی' : 'سفر'}</div>`;
+      </article>`).join('') + `<div class="data-note">انتخاب‌ها: ${p.gearbox === 'any' ? 'هر گیربکس' : p.gearbox === 'auto' ? 'اتومات' : 'دنده‌ای'} · ${p.use === 'city' ? 'شهری' : p.use === 'family' ? 'خانوادگی' : 'سفر'} · اولویت: ${p.priority === 'cheap' ? 'هزینه نگهداری' : p.priority === 'fuel' ? 'مصرف سوخت' : 'فروش مجدد'} · ${p.passengers} سرنشین · ${p.year}</div>`;
     document.querySelector('main').appendChild(section);
     section.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
@@ -105,13 +107,18 @@
         if (!budget || budget <= 0) return showError('لطفاً بودجه را به میلیون تومان وارد کن.');
         if (!gearbox || !use || !priority || !year || !passengers) return showError('لطفاً همه انتخاب‌ها را کامل کن.');
         if (!Array.isArray(window.carData) || !window.carData.length) return showError('اطلاعات خودروها بارگذاری نشده است.');
+
         const p = { budget, gearbox: gearbox.value, use: use.value, priority: priority.value, year: year.value, passengers: Number(passengers.value) };
         const scored = window.carData.map(c => scoreCar(c,p));
-        const affordable = scored.filter(c => Number(c.price) <= budget);
+
+        // HARD BUDGET RULE: never rank or render a car whose current reference price is above the user's budget.
+        const affordable = scored.filter(c => Number.isFinite(Number(c.price)) && Number(c.price) <= p.budget);
         if (!affordable.length) {
-          const minPrice = Math.min(...scored.map(c => Number(c.price)).filter(Number.isFinite));
+          const validPrices = scored.map(c => Number(c.price)).filter(Number.isFinite);
+          const minPrice = validPrices.length ? Math.min(...validPrices) : 0;
           return showNoBudgetMatch(p, minPrice);
         }
+
         const ranked = affordable.sort((a,b) => b.match-a.match).slice(0,3);
         render(ranked,p);
       } catch (err) {
