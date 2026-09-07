@@ -1,7 +1,7 @@
 {
-  "version": "1.1.0",
-  "versionCode": 11,
-  "name": "نسخه ۱.۱.۰",
-  "notes": "رفع مشکل دکمه پیدا کردن خودرو و بهبود تحلیل سال و سرنشینان",
+  "version": "1.1.1",
+  "versionCode": 12,
+  "name": "نسخه ۱.۱.۱",
+  "notes": "رفع ریشه‌ای مشکل دکمه پیدا کردن خودرو و سازگاری بهتر با نسخه اندروید",
   "downloadUrl": "https://github.com/Morijooob/dastyar-khodro/actions"
 }
