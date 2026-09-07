@@ -3,6 +3,15 @@
 
   const safeChecked = name => document.querySelector(`input[name="${name}"]:checked`);
   const fa = n => Number(n || 0).toLocaleString('fa-IR');
+  const normalizeDigits = value => String(value ?? '')
+    .replace(/[۰-۹]/g, d => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
+    .replace(/[٠-٩]/g, d => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+    .replace(/[٬,]/g, '')
+    .replace(/[٫]/g, '.');
+  const parseBudget = value => {
+    const n = Number(normalizeDigits(value).trim());
+    return Number.isFinite(n) ? n : 0;
+  };
 
   function getMarketPrice(car) {
     const rows = Array.isArray(window.marketPrices) ? window.marketPrices : [];
@@ -52,14 +61,14 @@
     const section = document.createElement('section');
     section.id = 'results';
     section.className = 'results';
-    section.innerHTML = `<div class="results-head"><div><span class="eyebrow">تحلیل دستیار خودرو</span><h2>🚗 پیشنهادهای مناسب تو</h2></div><span class="experimental">نسخه 1.1.2</span></div>` + results.map((c,i) => `<article class="result-card ${i === 0 ? 'top-pick' : ''}">
+    section.innerHTML = `<div class="results-head"><div><span class="eyebrow">تحلیل دستیار خودرو</span><h2>🚗 پیشنهادهای مناسب تو</h2></div><span class="experimental">نسخه 1.1.3</span></div>` + results.map((c,i) => `<article class="result-card ${i === 0 ? 'top-pick' : ''}">
       <div class="result-top"><div><span class="rank">${i === 0 ? '🏆 پیشنهاد اول' : `گزینه ${i+1}`}</span><h3>${c.name || c.title || 'خودرو'}</h3></div><div class="score"><strong>${c.match}</strong><small>امتیاز</small></div></div>
       <div class="price">💰 ${fa(c.price)} میلیون تومان</div>
       <div class="price-meta">بودجه شما: ${fa(p.budget)} میلیون تومان · فقط خودروهای داخل بودجه</div>
       <div class="reason-title">چرا این گزینه؟</div><ul>${c.reasons.map(x => `<li>${x}</li>`).join('')}</ul>
       ${c.bestListing ? `<div class="listing-summary"><strong>🔎 آگهی نمونه: ${fa(c.bestListing.price)} میلیون</strong><span>${c.bestListing.city || 'شهر نامشخص'}${c.bestListing.year ? ' · مدل '+c.bestListing.year : ''}${c.bestListing.mileage ? ' · '+fa(c.bestListing.mileage)+' کیلومتر' : ''}</span></div>` : ''}
       ${i === 0 ? '<span class="best-badge">⭐ بهترین تطبیق با انتخاب‌های شما</span>' : ''}
-    </article>`).join('') + `<div class="data-note">نسخه برنامه: 1.1.2 · بودجه: ${fa(p.budget)} میلیون · ${p.gearbox === 'any' ? 'هر گیربکس' : p.gearbox === 'auto' ? 'اتومات' : 'دنده‌ای'} · ${p.use === 'city' ? 'شهری' : p.use === 'family' ? 'خانوادگی' : 'سفر'} · اولویت: ${p.priority === 'cheap' ? 'هزینه نگهداری' : p.priority === 'fuel' ? 'مصرف سوخت' : 'فروش مجدد'} · ${p.passengers} سرنشین · ${p.year}</div>`;
+    </article>`).join('') + `<div class="data-note">نسخه برنامه: 1.1.3 · بودجه: ${fa(p.budget)} میلیون · ${p.gearbox === 'any' ? 'هر گیربکس' : p.gearbox === 'auto' ? 'اتومات' : 'دنده‌ای'} · ${p.use === 'city' ? 'شهری' : p.use === 'family' ? 'خانوادگی' : 'سفر'} · اولویت: ${p.priority === 'cheap' ? 'هزینه نگهداری' : p.priority === 'fuel' ? 'مصرف سوخت' : 'فروش مجدد'} · ${p.passengers} سرنشین · ${p.year}</div>`;
     document.querySelector('main').appendChild(section);
     section.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
@@ -69,7 +78,7 @@
     const section = document.createElement('section');
     section.id = 'results';
     section.className = 'results';
-    section.innerHTML = `<div class="results-head"><div><span class="eyebrow">نتیجه تحلیل</span><h2>😕 خودرویی داخل بودجه پیدا نشد</h2></div><span class="experimental">نسخه 1.1.2</span></div><article class="result-card top-pick"><div class="reason-title">بودجه انتخابی شما: ${fa(p.budget)} میلیون تومان</div><p style="color:var(--muted);margin:8px 0 0">در اطلاعات فعلی، ارزان‌ترین خودروی قابل پیشنهاد حدود <strong>${fa(minPrice)} میلیون تومان</strong> است. خودروهای بالاتر از بودجه نمایش داده نمی‌شوند.</p><div class="data-note">نسخه برنامه: 1.1.2 · فیلتر بودجه فعال است.</div></article>`;
+    section.innerHTML = `<div class="results-head"><div><span class="eyebrow">نتیجه تحلیل</span><h2>😕 خودرویی داخل بودجه پیدا نشد</h2></div><span class="experimental">نسخه 1.1.3</span></div><article class="result-card top-pick"><div class="reason-title">بودجه انتخابی شما: ${fa(p.budget)} میلیون تومان</div><p style="color:var(--muted);margin:8px 0 0">در اطلاعات فعلی، ارزان‌ترین خودروی قابل پیشنهاد حدود <strong>${fa(minPrice)} میلیون تومان</strong> است. خودروهای بالاتر از بودجه نمایش داده نمی‌شوند.</p><div class="data-note">نسخه برنامه: 1.1.3 · فیلتر بودجه فعال است · هیچ خودروی بالاتر از بودجه اجازه نمایش ندارد.</div></article>`;
     document.querySelector('main').appendChild(section);
     section.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
@@ -90,13 +99,25 @@
       e.preventDefault();
       try {
         removeResults();
-        const budget = Number(document.getElementById('budget')?.value);
+        const budget = parseBudget(document.getElementById('budget')?.value);
         const gearbox = safeChecked('gearbox'), use = safeChecked('use'), priority = safeChecked('priority'), year = safeChecked('year'), passengers = safeChecked('passengers');
         if (!budget || budget <= 0) return showError('لطفاً بودجه را به میلیون تومان وارد کن.');
         if (!gearbox || !use || !priority || !year || !passengers) return showError('لطفاً همه انتخاب‌ها را کامل کن.');
         if (!Array.isArray(window.carData) || !window.carData.length) return showError('اطلاعات خودروها بارگذاری نشده است.');
         const p = { budget, gearbox: gearbox.value, use: use.value, priority: priority.value, year: year.value, passengers: Number(passengers.value) };
-        const scored = window.carData.map(c => scoreCar(c, p));
+
+        // HARD BUDGET GATE: filter the raw car price BEFORE scoring.
+        // A car above the user's budget is never scored and can never reach render().
+        const rawAffordable = window.carData.filter(car => {
+          const rawPrice = Number(car.price);
+          return Number.isFinite(rawPrice) && rawPrice <= p.budget;
+        });
+        if (!rawAffordable.length) {
+          const rawPrices = window.carData.map(c => Number(c.price)).filter(Number.isFinite);
+          return showNoBudgetMatch(p, rawPrices.length ? Math.min(...rawPrices) : 0);
+        }
+
+        const scored = rawAffordable.map(c => scoreCar(c, p));
         const affordable = scored.filter(c => Number.isFinite(c.price) && c.price <= p.budget);
         if (!affordable.length) {
           const prices = scored.map(c => c.price).filter(Number.isFinite);
