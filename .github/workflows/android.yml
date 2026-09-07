@@ -179,14 +179,50 @@ jobs:
         working-directory: android
         run: ./gradlew --no-daemon assembleRelease
 
-      - name: Verify APK output
+      - name: Validate APK is actually installable
+        working-directory: android
         run: |
-          test -s android/app/build/outputs/apk/release/app-release.apk
-          ls -lh android/app/build/outputs/apk/release/app-release.apk
+          set -euo pipefail
+          APK="app/build/outputs/apk/release/app-release.apk"
+          test -s "$APK"
+          echo '=== APK file ==='
+          ls -lh "$APK"
+          file "$APK"
+          echo '=== ZIP integrity ==='
+          unzip -t "$APK" >/dev/null
+          echo 'OK: APK ZIP container is valid.'
+          echo '=== ZIP alignment ==='
+          ZIPALIGN="$(find "$ANDROID_HOME/build-tools" -type f -name zipalign | sort -V | tail -n1)"
+          test -x "$ZIPALIGN"
+          "$ZIPALIGN" -c -v 4 "$APK"
+          echo 'OK: APK is zip-aligned.'
+          echo '=== Android manifest ==='
+          AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n1)"
+          test -x "$AAPT"
+          "$AAPT" dump badging "$APK" | head -n 8
+          echo 'OK: Android manifest can be parsed.'
+          echo '=== APK signature ==='
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n1)"
+          test -x "$APKSIGNER"
+          "$APKSIGNER" verify --verbose --print-certs "$APK"
+          echo 'OK: APK signature verification passed.'
+          echo '=== Package identity ==='
+          "$AAPT" dump badging "$APK" | grep -m1 '^package:'
+          echo '=== Final APK validation passed ==='
 
-      - name: Upload APK
+      - name: Rename verified APK
+        run: |
+          VERSION=$(node -p "require('./version.json').version")
+          mkdir -p dist
+          cp android/app/build/outputs/apk/release/app-release.apk "dist/dastyar-khodro-${VERSION}-release.apk"
+          sha256sum "dist/dastyar-khodro-${VERSION}-release.apk" | tee "dist/dastyar-khodro-${VERSION}-release.apk.sha256"
+          ls -lh dist/
+
+      - name: Upload verified APK
         uses: actions/upload-artifact@v4
         with:
           name: dastyar-khodro-android-apk
-          path: android/app/build/outputs/apk/release/app-release.apk
+          path: |
+            dist/*.apk
+            dist/*.sha256
           if-no-files-found: error
