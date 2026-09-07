@@ -15,19 +15,47 @@
   function divarUrl(city,carName){const slug=city==='all'?'tehran':city;return`https://divar.ir/s/${encodeURIComponent(slug)}/car?query=${encodeURIComponent(carName||'خودرو')}`}
   function getListings(car,city='all'){if(typeof window.getVerifiedListings==='function')return window.getVerifiedListings(car.id,city);return[]}
 
-  // Value-for-money engine: 100 points.
+  // Value-for-money engine: 100 points. Missing data gets a neutral baseline instead of a penalty.
   // 30 market price + 20 budget fit + 15 suitability + 10 maintenance + 8 fuel + 7 resale + 5 live opportunity + 5 year.
   function calculateValueScore(car,p,marketPrice,bestListing){
     const budget=Number(p.budget)||0,market=Number(marketPrice)||Number(car.price)||0,listing=bestListing&&Number.isFinite(Number(bestListing.price))?Number(bestListing.price):null,price=listing??market;
     let score=0;const reasons=[];
-    if(market>0&&price>0){const discount=((market-price)/market)*100;score+=Math.max(0,Math.min(30,15+discount*2));if(discount>=5)reasons.push(`قیمت ${Math.round(discount)}٪ پایین‌تر از متوسط بازار است.`);else if(discount<=-5)reasons.push(`قیمت حدود ${Math.round(Math.abs(discount))}٪ بالاتر از متوسط بازار است.`);else reasons.push('قیمت به متوسط بازار نزدیک است.')}
-    if(budget>0&&price>0){const gap=Math.abs(price-budget)/budget*100;score+=Math.max(0,20-Math.min(20,gap*1.5));if(price<=budget)reasons.push('داخل بودجه شما قرار می‌گیرد.');else reasons.push(`حدود ${fa(Math.round(price-budget))} میلیون تومان بالاتر از بودجه است.`)}
-    let suitability=0;if(p.gearbox==='any'||car.gearbox===p.gearbox)suitability+=5;if(Array.isArray(car.uses)&&car.uses.includes(p.use))suitability+=5;if(p.passengers>=5&&(car.passengers||5)>=5)suitability+=3;if(p.passengers<=2&&Array.isArray(car.uses)&&car.uses.includes('city'))suitability+=2;score+=suitability;if(suitability>=10)reasons.push('با نیاز و نوع استفاده شما تناسب خوبی دارد.');
-    if(Number.isFinite(Number(car.maintenance)))score+=Math.max(0,Math.min(10,Number(car.maintenance)));if(Number(car.maintenance)>=7)reasons.push('هزینه نگهداری امتیاز خوبی دارد.');
-    if(Number.isFinite(Number(car.economy)))score+=Math.max(0,Math.min(8,Number(car.economy)*.8));if(Number(car.economy)>=7)reasons.push('مصرف سوخت اقتصادی‌تری دارد.');
-    if(Number.isFinite(Number(car.resale)))score+=Math.max(0,Math.min(7,Number(car.resale)*.7));if(Number(car.resale)>=8)reasons.push('بازار فروش مجدد خوبی دارد.');
+    if(market>0&&price>0){
+      const discount=((market-price)/market)*100;
+      // A normal price near market starts from a healthy 20/30; discounts/premiums adjust it gradually.
+      score+=Math.max(8,Math.min(30,20+discount*1.5));
+      if(discount>=5)reasons.push(`قیمت ${Math.round(discount)}٪ پایین‌تر از متوسط بازار است.`);
+      else if(discount<=-5)reasons.push(`قیمت حدود ${Math.round(Math.abs(discount))}٪ بالاتر از متوسط بازار است.`);
+      else reasons.push('قیمت به متوسط بازار نزدیک است.')
+    }
+    if(budget>0&&price>0){
+      const gap=Math.abs(price-budget)/budget*100;
+      // Being inside/near budget is rewarded strongly without crushing the total score.
+      score+=Math.max(5,20-Math.min(15,gap*.8));
+      if(price<=budget)reasons.push('داخل بودجه شما قرار می‌گیرد.');
+      else reasons.push(`حدود ${fa(Math.round(price-budget))} میلیون تومان بالاتر از بودجه است.`)
+    }
+    let suitability=0;
+    if(p.gearbox==='any'||car.gearbox===p.gearbox)suitability+=5;
+    if(Array.isArray(car.uses)&&car.uses.includes(p.use))suitability+=5;
+    if(p.passengers>=5&&(car.passengers||5)>=5)suitability+=3;
+    if(p.passengers<=2&&Array.isArray(car.uses)&&car.uses.includes('city'))suitability+=2;
+    // Neutral floor: lack of a matching attribute should not make an otherwise good car look bad.
+    if(suitability===0)suitability=7; else if(suitability<7)suitability=7;
+    score+=suitability;
+    if(suitability>=10)reasons.push('با نیاز و نوع استفاده شما تناسب خوبی دارد.');
+    if(Number.isFinite(Number(car.maintenance)))score+=Math.max(0,Math.min(10,Number(car.maintenance)));else score+=6;
+    if(Number(car.maintenance)>=7)reasons.push('هزینه نگهداری امتیاز خوبی دارد.');
+    if(Number.isFinite(Number(car.economy)))score+=Math.max(0,Math.min(8,Number(car.economy)*.8));else score+=5;
+    if(Number(car.economy)>=7)reasons.push('مصرف سوخت اقتصادی‌تری دارد.');
+    if(Number.isFinite(Number(car.resale)))score+=Math.max(0,Math.min(7,Number(car.resale)*.7));else score+=5;
+    if(Number(car.resale)>=8)reasons.push('بازار فروش مجدد خوبی دارد.');
     if(bestListing){score+=5;reasons.push('آگهی واقعی در بازار فعلی پیدا شده است.')}
-    let ys=0;if(p.year==='new')ys=Math.min(5,Math.max(0,(Number(car.year)-1398)*.85));else if(p.year==='old')ys=Math.min(5,Math.max(0,(1403-Number(car.year))*.85));else if(p.year==='balanced')ys=4;score+=ys;
+    let ys=0;
+    if(p.year==='new')ys=Math.min(5,Math.max(0,(Number(car.year)-1398)*.85));
+    else if(p.year==='old')ys=Math.min(5,Math.max(0,(1403-Number(car.year))*.85));
+    else if(p.year==='balanced')ys=4;
+    score+=ys;
     return{score:Math.max(0,Math.min(100,Math.round(score))),reasons:reasons.slice(0,5)}
   }
   function valueLabel(s){if(s>=85)return{label:'عالی',icon:'🟢'};if(s>=70)return{label:'خوب',icon:'🟢'};if(s>=55)return{label:'متوسط',icon:'🟡'};if(s>=40)return{label:'ضعیف',icon:'🟠'};return{label:'نامناسب',icon:'🔴'}}
