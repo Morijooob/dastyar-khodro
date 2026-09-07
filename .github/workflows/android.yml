@@ -92,7 +92,9 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > dastyar-release.keystore
+          set -euo pipefail
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > dastyar-release.keystore
+          test -s dastyar-release.keystore
           cat > keystore.properties <<EOF
           storeFile=dastyar-release.keystore
           storePassword=$ANDROID_KEYSTORE_PASSWORD
@@ -110,6 +112,23 @@ jobs:
               s = s.replace('buildTypes {', 'buildTypes {\n        release {\n            signingConfig signingConfigs.release\n        }', 1)
           p.write_text(s)
           PY
+
+      - name: Diagnose release keystore and signing key
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          echo 'Checking keystore integrity, store password and alias...'
+          keytool -list -keystore dastyar-release.keystore -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" >/dev/null
+          echo 'Store password and alias: OK'
+          echo 'Checking private-key password...'
+          keytool -certreq -keystore dastyar-release.keystore -storepass "$ANDROID_KEYSTORE_PASSWORD" -keypass "$ANDROID_KEY_PASSWORD" -alias "$ANDROID_KEY_ALIAS" -file /tmp/dastyar-signing-check.csr >/dev/null
+          rm -f /tmp/dastyar-signing-check.csr
+          echo 'Private-key password: OK'
+          echo 'Android signing credentials are valid.'
 
       - name: Sync web app into Android
         run: npx cap sync android
