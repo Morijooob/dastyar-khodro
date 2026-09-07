@@ -2,15 +2,36 @@
   'use strict';
   const BAMA_BASE = 'https://bama.ir/car/';
 
+  function bamaSlugForCar(car) {
+    const id = String(car?.id || '').toLowerCase();
+    const map = [
+      [/^peugeot-405/, 'peugeot-405'],
+      [/^peugeot-206/, 'peugeot-206'],
+      [/^peugeot-207/, 'peugeot-207'],
+      [/^quick/, 'quick'],
+      [/^tiba2?/, 'tiba'],
+      [/^saina/, 'saina'],
+      [/^atlas/, 'atlas'],
+      [/^sehand/, 'sehand'],
+      [/^soren/, 'soren'],
+      [/^rana/, 'rana'],
+      [/^dena/, 'dena'],
+      [/^samand/, 'samand'],
+      [/^tara/, 'tara'],
+      [/^shahin/, 'shahin'],
+      [/^pride/, 'pride']
+    ];
+    const hit = map.find(([re]) => re.test(id));
+    if (hit) return hit[1];
+    return id.replace(/-used-\d{4}$/, '').replace(/-(manual|auto|gxl|gl|rs|s|e-auto|tu3)$/, '');
+  }
+
   function bamaUrlForCard(box) {
     const card = box.closest('.result-card');
     const title = card?.querySelector('h3')?.textContent?.trim();
     const car = Array.isArray(window.carData) ? window.carData.find(x => String(x.name || x.title || '').trim() === title) : null;
-    if (car?.id) {
-      const slug = String(car.id).replace(/-used-\d{4}$/, '');
-      return `${BAMA_BASE}${encodeURIComponent(slug)}`;
-    }
-    return 'https://bama.ir/car';
+    const slug = bamaSlugForCar(car);
+    return slug ? `${BAMA_BASE}${encodeURIComponent(slug)}` : BAMA_BASE.slice(0, -1);
   }
 
   function fixResults() {
@@ -21,7 +42,9 @@
     });
 
     document.querySelectorAll('.marketplace-actions').forEach(box => {
-      let a = box.querySelector('.listing-bama');
+      const links = [...box.querySelectorAll('a')];
+      const bamaLinks = links.filter(a => /باما/.test(a.textContent || ''));
+      let a = bamaLinks[0];
       if (!a) {
         a = document.createElement('a');
         a.className = 'listing-link listing-bama';
@@ -30,7 +53,11 @@
         a.innerHTML = '<b>باما</b><small>مشاهده مدل در باما</small>';
         box.appendChild(a);
       }
+      a.classList.add('listing-bama');
       a.href = bamaUrlForCard(box);
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      bamaLinks.slice(1).forEach(x => x.remove());
     });
   }
 
@@ -39,8 +66,8 @@
     if (!main || document.getElementById('seller-promo')) return;
     const promo = document.createElement('section');
     promo.id = 'seller-promo';
-    promo.style.cssText = 'margin:28px 0 12px;padding:20px;border-radius:20px;background:linear-gradient(135deg,#fff8e8,#fff);border:1px solid #f0d89a;box-shadow:0 8px 24px rgba(0,0,0,.06);text-align:center;';
-    promo.innerHTML = '<div style="font-size:30px;margin-bottom:6px">🚘</div><h2 style="margin:0 0 8px;font-size:20px">خودروی خود را برای فروش بگذارید</h2><p style="margin:0 0 12px;color:var(--muted,#666);line-height:1.8">به‌زودی می‌توانید آگهی خودروی خود را در دستیار خودرو ثبت کنید و آن را به خریداران معرفی کنید.</p><span style="display:inline-block;padding:7px 14px;border-radius:999px;background:#fff0bf;color:#8a6500;font-weight:800">⏳ به‌زودی</span>';
+    promo.className = 'seller-promo';
+    promo.innerHTML = '<div class="seller-promo-icon">🚘</div><h2>خودروی خود را برای فروش بگذارید</h2><p>به‌زودی می‌توانید آگهی خودروی خود را در دستیار خودرو ثبت کنید و آن را به خریداران معرفی کنید.</p><span>⏳ به‌زودی</span>';
     const how = main.querySelector('.how');
     if (how) how.insertAdjacentElement('afterend', promo); else main.appendChild(promo);
   }
