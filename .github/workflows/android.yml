@@ -81,7 +81,6 @@ jobs:
         if: ${{ env.HAS_RELEASE_KEY == '' }}
         run: |
           echo 'ERROR: Persistent Android signing is not configured.'
-          echo 'Add ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS and ANDROID_KEY_PASSWORD to GitHub Actions secrets.'
           exit 1
 
       - name: Configure persistent release signing
@@ -105,8 +104,8 @@ jobs:
           from pathlib import Path
           p = Path('app/build.gradle')
           s = p.read_text()
+          signing = '''android {\n    signingConfigs {\n        release {\n            def propsFile = rootProject.file("keystore.properties")\n            def props = new Properties()\n            if (propsFile.exists()) propsFile.withInputStream { props.load(it) }\n            storeFile rootProject.file(props['storeFile'])\n            storePassword props['storePassword']\n            keyAlias props['keyAlias']\n            keyPassword props['keyPassword']\n        }\n    }'''
           if 'signingConfigs {' not in s:
-              signing = '''android {\n    signingConfigs {\n        release {\n            def propsFile = rootProject.file("keystore.properties")\n            def props = new Properties()\n            if (propsFile.exists()) propsFile.withInputStream { props.load(it) }\n            storeFile rootProject.file(props['storeFile'])\n            storePassword props['storePassword']\n            keyAlias props['keyAlias']\n            keyPassword props['keyPassword']\n        }\n    }'''
               s = s.replace('android {', signing, 1)
           if 'signingConfig signingConfigs.release' not in s:
               s = s.replace('buildTypes {', 'buildTypes {\n        release {\n            signingConfig signingConfigs.release\n        }', 1)
@@ -120,57 +119,12 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          set -uo pipefail
-          echo '=== Android signing diagnostics (secret values are never printed) ==='
-          echo '1) Keystore file:'
-          if test -s dastyar-release.keystore; then
-            echo '   OK: decoded keystore exists and is non-empty.'
-            echo "   Size: $(stat -c%s dastyar-release.keystore) bytes"
-            echo "   SHA-256: $(sha256sum dastyar-release.keystore | cut -d' ' -f1)"
-            echo "   File type: $(file -b dastyar-release.keystore)"
-          else
-            echo '   FAIL: decoded keystore is missing or empty.'
-            exit 1
-          fi
-
-          echo '2) Keystore format + store password:'
-          jks_ok=0
-          pkcs12_ok=0
-          if keytool -list -storetype JKS -keystore dastyar-release.keystore -storepass "$ANDROID_KEYSTORE_PASSWORD" >/dev/null 2>&1; then
-            jks_ok=1
-          fi
-          if keytool -list -storetype PKCS12 -keystore dastyar-release.keystore -storepass "$ANDROID_KEYSTORE_PASSWORD" >/dev/null 2>&1; then
-            pkcs12_ok=1
-          fi
-          if [ "$jks_ok" -eq 1 ] || [ "$pkcs12_ok" -eq 1 ]; then
-            echo '   OK: keystore is readable with the supplied store password.'
-            if [ "$jks_ok" -eq 1 ]; then echo '   Detected format: JKS'; fi
-            if [ "$pkcs12_ok" -eq 1 ]; then echo '   Detected format: PKCS12'; fi
-          else
-            echo '   FAIL: supplied store password does not open this decoded keystore.'
-            echo '   The Base64 decoded file exists, so check that ANDROID_KEYSTORE_PASSWORD belongs to this exact keystore.'
-            echo '   If the password is confirmed, replace ANDROID_KEYSTORE_BASE64 with a fresh Base64 encoding of the original keystore.'
-            exit 1
-          fi
-
-          echo '3) Alias:'
-          if keytool -list -keystore dastyar-release.keystore -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" >/dev/null 2>&1; then
-            echo '   OK: alias exists.'
-          else
-            echo '   FAIL: alias does not exist OR the supplied alias is incorrect.'
-            exit 1
-          fi
-
-          echo '4) Private-key password:'
-          if keytool -certreq -keystore dastyar-release.keystore -storepass "$ANDROID_KEYSTORE_PASSWORD" -keypass "$ANDROID_KEY_PASSWORD" -alias "$ANDROID_KEY_ALIAS" -file /tmp/dastyar-signing-check.csr >/dev/null 2>&1; then
-            echo '   OK: private-key password is valid.'
-            rm -f /tmp/dastyar-signing-check.csr
-          else
-            echo '   FAIL: private-key password is invalid OR alias does not identify a private key.'
-            exit 1
-          fi
-
-          echo '=== All Android signing credentials are valid. ==='
+          set -euo pipefail
+          test -s dastyar-release.keystore
+          keytool -list -keystore dastyar-release.keystore -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" >/dev/null
+          keytool -certreq -keystore dastyar-release.keystore -storepass "$ANDROID_KEYSTORE_PASSWORD" -keypass "$ANDROID_KEY_PASSWORD" -alias "$ANDROID_KEY_ALIAS" -file /tmp/dastyar-signing-check.csr >/dev/null
+          rm -f /tmp/dastyar-signing-check.csr
+          echo 'All Android signing credentials are valid.'
 
       - name: Sync web app into Android
         run: npx cap sync android
@@ -185,30 +139,15 @@ jobs:
           set -euo pipefail
           APK="app/build/outputs/apk/release/app-release.apk"
           test -s "$APK"
-          echo '=== APK file ==='
-          ls -lh "$APK"
-          file "$APK"
-          echo '=== ZIP integrity ==='
           unzip -t "$APK" >/dev/null
-          echo 'OK: APK ZIP container is valid.'
-          echo '=== ZIP alignment ==='
           ZIPALIGN="$(find "$ANDROID_HOME/build-tools" -type f -name zipalign | sort -V | tail -n1)"
-          test -x "$ZIPALIGN"
           "$ZIPALIGN" -c -v 4 "$APK"
-          echo 'OK: APK is zip-aligned.'
-          echo '=== Android manifest ==='
           AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n1)"
-          test -x "$AAPT"
           "$AAPT" dump badging "$APK" | head -n 8
-          echo 'OK: Android manifest can be parsed.'
-          echo '=== APK signature ==='
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n1)"
-          test -x "$APKSIGNER"
           "$APKSIGNER" verify --verbose --print-certs "$APK"
-          echo 'OK: APK signature verification passed.'
-          echo '=== Package identity ==='
           "$AAPT" dump badging "$APK" | grep -m1 '^package:'
-          echo '=== Final APK validation passed ==='
+          echo 'FINAL APK VALIDATION PASSED'
 
       - name: Rename verified APK
         run: |
@@ -216,7 +155,6 @@ jobs:
           mkdir -p dist
           cp android/app/build/outputs/apk/release/app-release.apk "dist/dastyar-khodro-${VERSION}-release.apk"
           sha256sum "dist/dastyar-khodro-${VERSION}-release.apk" | tee "dist/dastyar-khodro-${VERSION}-release.apk.sha256"
-          ls -lh dist/
 
       - name: Upload verified APK
         uses: actions/upload-artifact@v4
