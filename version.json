@@ -1,7 +1,7 @@
 {
-  "version": "1.2.0",
-  "versionCode": 19,
-  "name": "نسخه ۱.۲.۰",
-  "notes": "نمایش وضعیت قیمت آگهی نسبت به متوسط بازار و به‌روزرسانی مرجع قیمت بازار",
+  "version": "1.3.0",
+  "versionCode": 20,
+  "name": "نسخه ۱.۳.۰",
+  "notes": "فیلتر واقعی شهر و بودجه، نمایش امتیاز خودرو، لایه آگهی تأییدشده و مسیر مستقیم آگهی در صورت وجود",
   "downloadUrl": "https://github.com/Morijooob/dastyar-khodro/actions"
 }
