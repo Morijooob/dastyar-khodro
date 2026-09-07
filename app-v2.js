@@ -20,11 +20,10 @@
         const local = Array.isArray(window.marketPrices) ? window.marketPrices : [];
         window.marketPrices = [...local, ...remote.prices];
       }
-    } catch (e) {
-      console.log('Remote market feed skipped:', e);
-    }
+    } catch (e) { console.log('Remote market feed skipped:', e); }
   }
   const marketFeedPromise = refreshMarketPrices();
+
   function getMarketInfo(car) {
     const rows = Array.isArray(window.marketPrices) ? window.marketPrices : [];
     const matches = rows.filter(x => x.carId === car.id && Number.isFinite(Number(x.price)) && x.date);
@@ -33,11 +32,11 @@
     const latest = matches.filter(x => x.date === latestDate);
     return {price:Math.round(latest.reduce((s,x) => s + Number(x.price), 0) / latest.length),date:latestDate,sources:[...new Set(latest.map(x => x.source).filter(Boolean))]};
   }
-  function getMarketPrice(car) { return getMarketInfo(car).price; }
+
   function marketStatus(c) {
     const info = getMarketInfo(c);
     if (!c.bestListing || !Number.isFinite(Number(c.bestListing.price)) || !Number.isFinite(Number(info.price)) || info.price <= 0) {
-      return `<div class="price-change flat">📊 وضعیت بازار: اطلاعات آگهی قابل مقایسه برای این خودرو نداریم.</div>`;
+      return `<div class="price-change flat">ℹ️ آگهی زنده و تأییدشده‌ای برای مقایسه این خودرو در بانک فعلی نداریم.</div>`;
     }
     const listingPrice = Number(c.bestListing.price);
     const pct = ((listingPrice - info.price) / info.price) * 100;
@@ -46,14 +45,17 @@
     if (pct < 0) return `<div class="price-change down">🟢 پایین‌تر از قیمت بازار · ${fa(rounded)}٪ کمتر از متوسط بازار</div>`;
     return `<div class="price-change up">🔴 بالاتر از قیمت بازار · ${fa(rounded)}٪ بیشتر از متوسط بازار</div>`;
   }
+
   function divarUrl(city, carName) {
     const slug = city === 'all' ? 'tehran' : city;
     return `https://divar.ir/s/${encodeURIComponent(slug)}/car?query=${encodeURIComponent(carName || 'خودرو')}`;
   }
+
   function getListings(car, city='all') {
-    if (!Array.isArray(window.listings)) return [];
-    return window.listings.filter(x => x.carId === car.id && Number.isFinite(Number(x.price))).filter(x => city === 'all' || x.city === cityNames[city]).map(x => ({...x,price:Number(x.price),year:Number(x.year)||null,mileage:Number(x.mileage)||null}));
+    if (typeof window.getVerifiedListings === 'function') return window.getVerifiedListings(car.id, city);
+    return [];
   }
+
   function scoreCar(car,p) {
     const market = getMarketInfo(car);
     const price = market.price;
@@ -71,31 +73,44 @@
     if (p.priority === 'resale' && car.resale >= 8) reasons.push('بازار فروش بهتری دارد.');
     if (p.passengers >= 5 && (car.passengers || 5) >= 5) { score += 5; reasons.push('برای ۵ سرنشین مناسب است.'); }
     if (p.passengers <= 2 && Array.isArray(car.uses) && car.uses.includes('city')) score += 3;
-    if (p.year === "new") score += Math.min(10,Math.max(0,(Number(car.year)-1398)*1.7));
-    if (p.year === "old") score += Math.min(10,Math.max(0,(1403-Number(car.year))*1.7));
+    if (p.year === 'new') score += Math.min(10,Math.max(0,(Number(car.year)-1398)*1.7));
+    if (p.year === 'old') score += Math.min(10,Math.max(0,(1403-Number(car.year))*1.7));
     if (p.year === 'balanced') score += 4;
-    const bestListing = getListings(car,p.city).filter(x => Math.abs(x.price-p.budget) <= PRICE_WINDOW_MILLION).sort((a,b) => Math.abs(a.price-p.budget)-Math.abs(b.price-p.budget))[0] || null; if (bestListing) score += 10; if (p.city === "all" || getListings(car,p.city).length > 0) score += 5;
+    const listings = getListings(car,p.city);
+    const bestListing = listings.filter(x => Math.abs(x.price-p.budget) <= PRICE_WINDOW_MILLION).sort((a,b) => Math.abs(a.price-p.budget)-Math.abs(b.price-p.budget))[0] || null;
+    if (bestListing) score += 10;
+    if (p.city === 'all' || listings.length > 0) score += 5;
     return {...car,price,difference,absoluteDifference,marketDate:market.date,marketSources:market.sources,match:Math.max(0,Math.min(100,Math.round(score))),reasons:reasons.slice(0,4),bestListing,listingCity:bestListing?.city || cityNames[p.city]||'همه شهرها',divarUrl:bestListing?.url && bestListing.url !== '#' ? bestListing.url : divarUrl(p.city,car.name||car.title)};
   }
+
   function removeResults(){ document.getElementById('results')?.remove(); document.getElementById('app-error')?.remove(); }
+
   function marketplaceLinks(c){
     const gap = c.difference === 0 ? 'هم‌قیمت' : `${c.difference > 0 ? '+' : ''}${Math.round(c.difference).toLocaleString('fa-IR')} میلیون`;
+    if (c.bestListing) {
+      const source = c.bestListing.source || 'منبع';
+      return `<div class="listing-summary"><div><strong>🟢 آگهی تأییدشده</strong><span>${c.bestListing.city} · ${source} · ${fa(c.bestListing.price)} میلیون تومان</span></div><div class="marketplace-actions"><a class="listing-link" href="${c.bestListing.url}" target="_blank" rel="noopener noreferrer">مشاهده آگهی در ${source}</a></div><small>آخرین مشاهده: ${c.bestListing.observedAt ? faText(c.bestListing.observedAt) : 'نامشخص'} · اختلاف با بودجه: ${gap}</small></div>`;
+    }
     const sheypoor = 'https://www.sheypoor.com/';
-    return `<div class="listing-summary"><div><strong>🛒 مسیرهای خرید</strong><span>${c.listingCity} · اختلاف با بودجه: ${gap}</span></div><div class="marketplace-actions"><a class="listing-link" href="${c.divarUrl}" target="_blank" rel="noopener noreferrer">دیوار</a><a class="listing-link" href="${sheypoor}" target="_blank" rel="noopener noreferrer">شیپور</a></div><small>این دکمه‌ها مسیر جستجو در بازارها را باز می‌کنند؛ آگهی زنده داخل برنامه ادعا نمی‌شود.</small></div>`;
+    return `<div class="listing-summary"><div><strong>🛒 جستجوی بازار</strong><span>${cityNames[c.listingCity] || c.listingCity} · هنوز آگهی زنده تأییدشده نداریم</span></div><div class="marketplace-actions"><a class="listing-link" href="${c.divarUrl}" target="_blank" rel="noopener noreferrer">دیوار</a><a class="listing-link" href="${sheypoor}" target="_blank" rel="noopener noreferrer">شیپور</a></div><small>این‌ها مسیر جستجوی بازار هستند، نه آگهی مشخص. اطلاعات ساختگی وارد سیستم نمی‌کنیم.</small></div>`;
   }
+
   function render(results,p){
     removeResults();
     const section=document.createElement('section'); section.id='results'; section.className='results';
-    section.innerHTML=`<div class="results-head"><div><span class="eyebrow">تحلیل دستیار خودرو</span><h2>🚗 پیشنهادهای نزدیک به بودجه تو</h2></div><span class="experimental">نسخه 1.2.0</span></div>`+results.map((c,i)=>`<article class="result-card ${i===0?'top-pick':''}"><div class="result-top"><div><span class="rank">${i===0?'🏆 پیشنهاد اول':`گزینه ${i+1}`}</span><h3>${c.name||c.title||'خودرو'}</h3></div><div class="score"><strong>${Number.isFinite(Number(c.match)) ? Math.round(Number(c.match)) : 0}٪</strong><small>امتیاز</small></div></div><div class="price">💰 ${fa(c.price)} میلیون تومان</div><div class="price-meta">متوسط قیمت بازار · بروزرسانی: ${c.marketDate ? faText(c.marketDate) : 'نامشخص'} · بودجه شما: ${fa(p.budget)} میلیون تومان · شهر: ${cityNames[p.city]}</div>${marketStatus(c)}<div class="reason-title">چرا این گزینه؟</div><ul>${c.reasons.map(x=>`<li>${x}</li>`).join('')}</ul>${marketplaceLinks(c)}${i===0?'<span class="best-badge">⭐ نزدیک‌ترین گزینه به بودجه</span>':''}</article>`).join('')+`<div class="data-note">نسخه برنامه: 1.2.0 · قیمت بازار از آخرین داده ثبت‌شده استفاده می‌کند و در پس‌زمینه از منبع آنلاین هم تازه‌سازی می‌شود.</div>`;
+    section.innerHTML=`<div class="results-head"><div><span class="eyebrow">تحلیل دستیار خودرو</span><h2>🚗 پیشنهادهای نزدیک به بودجه تو</h2></div><span class="experimental">نسخه ${window.APP_VERSION || '1.3.0'}</span></div>`+results.map((c,i)=>`<article class="result-card ${i===0?'top-pick':''}"><div class="result-top"><div><span class="rank">${i===0?'🏆 پیشنهاد اول':`گزینه ${i+1}`}</span><h3>${c.name||c.title||'خودرو'}</h3></div><div class="score"><strong>${Number.isFinite(Number(c.match)) ? Math.round(Number(c.match)) : 0}٪</strong><small>امتیاز</small></div></div><div class="price">💰 ${fa(c.price)} میلیون تومان</div><div class="price-meta">متوسط قیمت بازار · بروزرسانی: ${c.marketDate ? faText(c.marketDate) : 'نامشخص'} · بودجه شما: ${fa(p.budget)} میلیون تومان · شهر: ${cityNames[p.city]}</div>${marketStatus(c)}<div class="reason-title">چرا این گزینه؟</div><ul>${c.reasons.map(x=>`<li>${x}</li>`).join('')}</ul>${marketplaceLinks(c)}${i===0?'<span class="best-badge">⭐ نزدیک‌ترین گزینه به بودجه</span>':''}</article>`).join('')+`<div class="data-note">نسخه برنامه: ${window.APP_VERSION || '1.3.0'} · آگهی فقط وقتی مقایسه می‌شود که به‌صورت مستقل تأیید و زنده ثبت شده باشد.</div>`;
     document.querySelector('main').appendChild(section); section.scrollIntoView({behavior:'smooth',block:'start'});
   }
+
   function showNoBudgetMatch(p,prices){
     removeResults(); const section=document.createElement('section'); section.id='results'; section.className='results';
     const nearest=prices.length?prices.sort((a,b)=>Math.abs(a-p.budget)-Math.abs(b-p.budget))[0]:0;
-    section.innerHTML=`<div class="results-head"><div><span class="eyebrow">نتیجه تحلیل</span><h2>😕 در بازه انتخابی خودرو نداریم</h2></div><span class="experimental">نسخه 1.2.0</span></div><article class="result-card top-pick"><div class="reason-title">بودجه: ${fa(p.budget)} میلیون تومان</div><p style="color:var(--muted);margin:8px 0 0">منطق جدید فقط خودروهای حدود ۱۰۰ میلیون تومان پایین‌تر یا بالاتر از بودجه را پیشنهاد می‌دهد. نزدیک‌ترین قیمت موجود در داده فعلی: <strong>${fa(nearest)} میلیون تومان</strong>.</p><div class="data-note">برای بودجه ۵۰۰ میلیون تومان هم جستجو مجاز است؛ اگر نتیجه‌ای نیست، یعنی داده خودرو در آن بازه هنوز در بانک اطلاعاتی برنامه وجود ندارد.</div></article></section>`;
+    section.innerHTML=`<div class="results-head"><div><span class="eyebrow">نتیجه تحلیل</span><h2>😕 در بازه انتخابی خودرو نداریم</h2></div><span class="experimental">نسخه ${window.APP_VERSION || '1.3.0'}</span></div><article class="result-card top-pick"><div class="reason-title">بودجه: ${fa(p.budget)} میلیون تومان</div><p style="color:var(--muted);margin:8px 0 0">منطق جدید فقط خودروهای حدود ۱۰۰ میلیون تومان پایین‌تر یا بالاتر از بودجه را پیشنهاد می‌دهد. نزدیک‌ترین قیمت موجود در داده فعلی: <strong>${fa(nearest)} میلیون تومان</strong>.</p><div class="data-note">آگهی زنده جدا از قیمت مرجع بازار نگهداری می‌شود و تا وقتی منبع معتبر وصل نشود، داده ساختگی نمایش نمی‌دهیم.</div></article></section>`;
     document.querySelector('main').appendChild(section); section.scrollIntoView({behavior:'smooth',block:'start'});
   }
+
   function showError(message){ document.getElementById('app-error')?.remove(); const box=document.createElement('div'); box.id='app-error'; box.style.cssText='max-width:720px;margin:16px auto;padding:14px;border-radius:14px;background:#fff2ed;border:1px solid #f1d0c3;color:#8b2e13;font-weight:700;text-align:center;'; box.textContent=message; document.getElementById('car-form')?.before(box); }
+
   function init(){
     const form=document.getElementById('car-form'); if(!form) return showError('فرم خودرو پیدا نشد.');
     const budgetInput=document.getElementById('budget');
@@ -105,6 +120,7 @@
       try{
         removeResults();
         await marketFeedPromise;
+        if (window.listingApiPromise) await window.listingApiPromise;
         const budgetToman=parseBudgetToman(document.getElementById('budget')?.value);
         const gearbox=safeChecked('gearbox'),use=safeChecked('use'),priority=safeChecked('priority'),year=safeChecked('year'),passengers=safeChecked('passengers');
         const city=document.getElementById('city')?.value||'all';
