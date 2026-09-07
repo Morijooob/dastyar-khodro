@@ -3,12 +3,27 @@
   const MIN_BUDGET_TOMAN = 500_000_000;
   const PRICE_WINDOW_MILLION = 100;
   const MARKET_NEAR_PERCENT = 3;
+  const MARKET_FEED_URL = 'https://raw.githubusercontent.com/Morijooob/dastyar-khodro/main/data/market-prices.json';
   const safeChecked = name => document.querySelector(`input[name="${name}"]:checked`);
   const fa = n => Number(n || 0).toLocaleString('fa-IR');
+  const faText = value => String(value ?? '').replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[Number(d)]);
   const normalizeDigits = value => String(value ?? '').replace(/[۰-۹]/g, d => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))).replace(/[٠-٩]/g, d => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))).replace(/[٬,]/g, '').replace(/[٫]/g, '.');
   const parseBudgetToman = value => { const n = Number(normalizeDigits(value).trim()); return Number.isFinite(n) ? n : 0; };
   const cityNames = { all:'همه شهرها',tehran:'تهران',mashhad:'مشهد',isfahan:'اصفهان',shiraz:'شیراز',tabriz:'تبریز',karaj:'کرج',ahvaz:'اهواز',qom:'قم',kermanshah:'کرمانشاه',rasht:'رشت',urmia:'ارومیه',yazd:'یزد',kerman:'کرمان',arak:'اراک','bandar-abbas':'بندرعباس' };
 
+  async function refreshMarketPrices() {
+    try {
+      const res = await fetch(`${MARKET_FEED_URL}?t=${Date.now()}`, {cache:'no-store'});
+      if (!res.ok) return;
+      const remote = await res.json();
+      if (Array.isArray(remote.prices) && remote.prices.length) {
+        const local = Array.isArray(window.marketPrices) ? window.marketPrices : [];
+        window.marketPrices = [...local, ...remote.prices];
+      }
+    } catch (e) {
+      console.log('Remote market feed skipped:', e);
+    }
+  }
   function getMarketInfo(car) {
     const rows = Array.isArray(window.marketPrices) ? window.marketPrices : [];
     const matches = rows.filter(x => x.carId === car.id && Number.isFinite(Number(x.price)) && x.date);
@@ -27,7 +42,7 @@
     const diff = listingPrice - info.price;
     const pct = (diff / info.price) * 100;
     const rounded = Math.abs(pct) < 0.1 ? 0 : Math.round(Math.abs(pct) * 10) / 10;
-    if (Math.abs(pct) <= MARKET_NEAR_PERCENT) return `<div class="price-change flat">🟡 نزدیک به متوسط قیمت بازار · ${fa(info.price)} میلیون تومان <small>(${fa(info.date)} · مرجع بازار)</small></div>`;
+    if (Math.abs(pct) <= MARKET_NEAR_PERCENT) return `<div class="price-change flat">🟡 نزدیک به متوسط قیمت بازار · ${fa(info.price)} میلیون تومان <small>(${faText(info.date)} · مرجع بازار)</small></div>`;
     if (pct < 0) return `<div class="price-change down">🟢 پایین‌تر از قیمت بازار · ${fa(rounded)}٪ کمتر از متوسط بازار</div>`;
     return `<div class="price-change up">🔴 بالاتر از قیمت بازار · ${fa(rounded)}٪ بیشتر از متوسط بازار</div>`;
   }
@@ -71,7 +86,7 @@
   function render(results,p){
     removeResults();
     const section=document.createElement('section'); section.id='results'; section.className='results';
-    section.innerHTML=`<div class="results-head"><div><span class="eyebrow">تحلیل دستیار خودرو</span><h2>🚗 پیشنهادهای نزدیک به بودجه تو</h2></div><span class="experimental">نسخه 1.2.0</span></div>`+results.map((c,i)=>`<article class="result-card ${i===0?'top-pick':''}"><div class="result-top"><div><span class="rank">${i===0?'🏆 پیشنهاد اول':`گزینه ${i+1}`}</span><h3>${c.name||c.title||'خودرو'}</h3></div><div class="score"><strong>${Number.isFinite(Number(c.match)) ? Math.round(Number(c.match)) : 0}٪</strong><small>امتیاز</small></div></div><div class="price">💰 ${fa(c.price)} میلیون تومان</div><div class="price-meta">متوسط قیمت بازار · بروزرسانی: ${c.marketDate ? fa(c.marketDate.replace('1405-','')) : 'نامشخص'} · بودجه شما: ${fa(p.budget)} میلیون تومان · شهر: ${cityNames[p.city]}</div>${marketStatus(c)}<div class="reason-title">چرا این گزینه؟</div><ul>${c.reasons.map(x=>`<li>${x}</li>`).join('')}</ul>${marketplaceLinks(c)}${i===0?'<span class="best-badge">⭐ نزدیک‌ترین گزینه به بودجه</span>':''}</article>`).join('')+`<div class="data-note">نسخه برنامه: 1.2.0 · قیمت بازار از آخرین snapshot ثبت‌شده استفاده می‌کند و باید به‌صورت دوره‌ای به‌روزرسانی شود.</div>`;
+    section.innerHTML=`<div class="results-head"><div><span class="eyebrow">تحلیل دستیار خودرو</span><h2>🚗 پیشنهادهای نزدیک به بودجه تو</h2></div><span class="experimental">نسخه 1.2.0</span></div>`+results.map((c,i)=>`<article class="result-card ${i===0?'top-pick':''}"><div class="result-top"><div><span class="rank">${i===0?'🏆 پیشنهاد اول':`گزینه ${i+1}`}</span><h3>${c.name||c.title||'خودرو'}</h3></div><div class="score"><strong>${Number.isFinite(Number(c.match)) ? Math.round(Number(c.match)) : 0}٪</strong><small>امتیاز</small></div></div><div class="price">💰 ${fa(c.price)} میلیون تومان</div><div class="price-meta">متوسط قیمت بازار · بروزرسانی: ${c.marketDate ? faText(c.marketDate) : 'نامشخص'} · بودجه شما: ${fa(p.budget)} میلیون تومان · شهر: ${cityNames[p.city]}</div>${marketStatus(c)}<div class="reason-title">چرا این گزینه؟</div><ul>${c.reasons.map(x=>`<li>${x}</li>`).join('')}</ul>${marketplaceLinks(c)}${i===0?'<span class="best-badge">⭐ نزدیک‌ترین گزینه به بودجه</span>':''}</article>`).join('')+`<div class="data-note">نسخه برنامه: 1.2.0 · قیمت بازار از آخرین داده ثبت‌شده استفاده می‌کند و در پس‌زمینه از منبع آنلاین هم تازه‌سازی می‌شود.</div>`;
     document.querySelector('main').appendChild(section); section.scrollIntoView({behavior:'smooth',block:'start'});
   }
   function showNoBudgetMatch(p,prices){
@@ -83,6 +98,7 @@
   function showError(message){ document.getElementById('app-error')?.remove(); const box=document.createElement('div'); box.id='app-error'; box.style.cssText='max-width:720px;margin:16px auto;padding:14px;border-radius:14px;background:#fff2ed;border:1px solid #f1d0c3;color:#8b2e13;font-weight:700;text-align:center;'; box.textContent=message; document.getElementById('car-form')?.before(box); }
   function init(){
     const form=document.getElementById('car-form'); if(!form) return showError('فرم خودرو پیدا نشد.');
+    refreshMarketPrices();
     const budgetInput=document.getElementById('budget');
     if(budgetInput) budgetInput.addEventListener('input',()=>{ const digits=normalizeDigits(budgetInput.value).replace(/\D/g,''); budgetInput.value=digits?Number(digits).toLocaleString('fa-IR'):''; });
     form.addEventListener('submit',e=>{
