@@ -71,7 +71,7 @@ jobs:
           print(f'Android versionName={version}, versionCode={run_number}')
           PY
 
-      - name: Set current Android target SDK
+      - name: Set Android target SDK
         working-directory: android
         run: |
           sed -i -E 's/(compileSdkVersion[[:space:]]*=[[:space:]]*)[0-9]+/\136/' variables.gradle
@@ -120,15 +120,42 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          set -euo pipefail
-          echo 'Checking keystore integrity, store password and alias...'
-          keytool -list -keystore dastyar-release.keystore -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" >/dev/null
-          echo 'Store password and alias: OK'
-          echo 'Checking private-key password...'
-          keytool -certreq -keystore dastyar-release.keystore -storepass "$ANDROID_KEYSTORE_PASSWORD" -keypass "$ANDROID_KEY_PASSWORD" -alias "$ANDROID_KEY_ALIAS" -file /tmp/dastyar-signing-check.csr >/dev/null
-          rm -f /tmp/dastyar-signing-check.csr
-          echo 'Private-key password: OK'
-          echo 'Android signing credentials are valid.'
+          set -uo pipefail
+          echo '=== Android signing diagnostics (values are never printed) ==='
+          echo '1) Keystore file:'
+          if test -s dastyar-release.keystore; then
+            echo '   OK: keystore file exists and is non-empty.'
+          else
+            echo '   FAIL: keystore file is missing or empty.'
+            exit 1
+          fi
+
+          echo '2) Store password + keystore integrity:'
+          if keytool -list -keystore dastyar-release.keystore -storepass "$ANDROID_KEYSTORE_PASSWORD" >/dev/null 2>&1; then
+            echo '   OK: store password is valid and keystore can be opened.'
+          else
+            echo '   FAIL: store password is invalid OR keystore is not a valid readable keystore.'
+            exit 1
+          fi
+
+          echo '3) Alias:'
+          if keytool -list -keystore dastyar-release.keystore -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" >/dev/null 2>&1; then
+            echo '   OK: alias exists.'
+          else
+            echo '   FAIL: alias does not exist OR the supplied alias is incorrect.'
+            exit 1
+          fi
+
+          echo '4) Private-key password:'
+          if keytool -certreq -keystore dastyar-release.keystore -storepass "$ANDROID_KEYSTORE_PASSWORD" -keypass "$ANDROID_KEY_PASSWORD" -alias "$ANDROID_KEY_ALIAS" -file /tmp/dastyar-signing-check.csr >/dev/null 2>&1; then
+            echo '   OK: private-key password is valid.'
+            rm -f /tmp/dastyar-signing-check.csr
+          else
+            echo '   FAIL: private-key password is invalid OR alias does not identify a private key.'
+            exit 1
+          fi
+
+          echo '=== All Android signing credentials are valid. ==='
 
       - name: Sync web app into Android
         run: npx cap sync android
